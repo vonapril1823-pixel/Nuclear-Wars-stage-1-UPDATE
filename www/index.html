@@ -778,7 +778,7 @@ function sha256(m) {
   }
   return H.map(x => (x >>> 0).toString(16).padStart(8, '0')).join('');
 }
-const CODE_SALT = 'nw-stage1-a8aa187275b0', CODE_HASH = { 98: '546a6ad08e36bdce48e48c56df0de6ef066e39429517329ab55d0b28eb7f01ae', 99: 'd827f943518e23f0256ba90d27598ac1fe4fd5821e32975b2c22e6961497592d', 2: '2b7153ff035d351a5f8768b686ee56b0ae0ac336fd0bea0439ff1dd7db5917ed', 3: '8e7dfe67479e5968731f73f787e246a6921b3f94e484d102c2b600aedb24d8f7', 4: '39919acc3c8735eed6987a4ad6225e1e110bef861cce6aed5eb7205229344d21', 5: '7b57241e68c4fb116e9838a0a7a2b398bbe7063ca997fbf4d998584796a5598e' };
+const CODE_SALT = 'nw-stage1-a8aa187275b0', CODE_HASH = { 97: '45467e4423ab1f27ad3fb6e2c2219b92a83005876082619668c8b02dd108cb2a', 98: '546a6ad08e36bdce48e48c56df0de6ef066e39429517329ab55d0b28eb7f01ae', 99: 'd827f943518e23f0256ba90d27598ac1fe4fd5821e32975b2c22e6961497592d', 2: '2b7153ff035d351a5f8768b686ee56b0ae0ac336fd0bea0439ff1dd7db5917ed', 3: '8e7dfe67479e5968731f73f787e246a6921b3f94e484d102c2b600aedb24d8f7', 4: '39919acc3c8735eed6987a4ad6225e1e110bef861cce6aed5eb7205229344d21', 5: '7b57241e68c4fb116e9838a0a7a2b398bbe7063ca997fbf4d998584796a5598e' };
 const stageOfCode = raw => { const c = String(raw).toUpperCase().replace(/[^A-Z0-9]/g, ''); if (c.length < 6) return 0; const h = sha256(CODE_SALT + c); for (const k in CODE_HASH) if (CODE_HASH[k] === h) return +k; return 0; };
 const KEY = 'nuclearWarsProfile4';
 const P = { name: 'Atom Cadet', exp: 0, atoms: 150, gems: 5, sound: true, unlocked: 1,
@@ -807,6 +807,17 @@ const copies = id => SINGLE.has(id) ? Math.min(1, P.owned[id] || 0) : P.owned[id
 ['helium-4', 'radium-226', 'cobalt-60', 'stellar-fusion-core', 'critical-mass'].forEach(id => { if (P.owned[id] > 0 && P.owned[id] < 3) P.owned[id] = 3; }); /* earlier versions gave only 1 copy */
 const SLOTS = 8, dkey = (n, k) => k > 1 ? '1_' + k : '1', slotOf = n => ((P.activeSlot || {})[1]) || 1, setSlot = (n, k) => { (P.activeSlot = P.activeSlot || {})[1] = k; };
 const allLands = () => LANDS.map((_, i) => i);
+function testMode(quiet) { /* teacher/developer code: unlock every card and stage so the game can be tried end to end */
+  P.testMode = true; P.unlocked = 5; P.tutorial = true; P.welcomed = true; P.cleared = Object.assign({}, P.cleared, { 1: 99, 2: 99, 3: 99, 4: 99, 5: 99 });
+  CAT.forEach(c => { P.owned[c.id] = isLand(c) ? 8 : 6; }); ['envoy-dragon', 'void-dragon'].forEach(id => { P.owned[id] = 1; });
+  if (quiet) return; P.atoms = Math.max(P.atoms, 99999); P.gems = Math.max(P.gems, 99);
+  const rank = { creature: 0, building: 1, app: 1, defense: 2, spell: 3 };
+  for (let n = 1; n <= 5; n++) { const ls = needLands(n).slice().reverse(), lands = []; for (let i = 0; i < LAND_SLOTS; i++) lands.push(ls[i % ls.length]);
+    const pool = CAT.filter(c => !isLand(c) && !c.boss && c.id !== 'critical-mass' && c.stage <= n && c.id !== 'envoy-dragon' && c.id !== 'void-dragon').sort((a, b) => rank[a.kind] - rank[b.kind] || b.stage - a.stage), cards = []; let pass = 0;
+    while (cards.length < DECK_SIZE && pass < 7) { for (const c of pool) { if (cards.length >= DECK_SIZE) break; if (cards.filter(x => x === c.id).length <= pass) cards.push(c.id); } pass++; }
+    P.decks[n] = { lands, cards }; }
+}
+if (P.testMode) testMode(true);
 /* creatures in a deck that have no matching home landscape among its landscapes can never be summoned */
 const stuckCards = d => d.cards.map(id => BYID[id]).filter(c => { if (!c || c.kind !== 'creature') return false; const t = (c.type || '').split('·')[1], i = t ? LANDS.findIndex(l => l.name === t.trim()) : -1; return i >= 0 && !d.lands.includes(i); });
 /* one-time move: old per-stage decks (stages 2 to 5) become ordinary save slots */
@@ -1597,6 +1608,7 @@ sheet.addEventListener('click', e => {
     const v = $('#nm').value.trim(); if (v) P.name = v; const code = $('#tc').value.trim(); let msg = 'Saved.';
     if (code && stageOfCode(code) === 98) { const had = copies('void-dragon') > 0; P.owned['void-dragon'] = 1; msg = had ? 'The Cosmic Void Dragon is already in your collection.' : 'God card unlocked: Cosmic Void Dragon! Find it in Deck Lab.'; if (!had) setTimeout(() => godUnlockFX('void-dragon').then(() => open(unlockView([BYID['void-dragon']], 'A secret code awakens a God card. You own 1 copy; only 1 can go in a deck.', BYID['void-dragon'].story), true)), 350); }
     else if (code && stageOfCode(code) === 99) { const had = copies('envoy-dragon') > 0; P.owned['envoy-dragon'] = 1; msg = had ? 'The Envoy Dragon is already in your collection.' : 'God card unlocked: The Envoy Dragon of Beginning! Find it in Deck Lab.'; if (!had) setTimeout(() => godUnlockFX('envoy-dragon').then(() => open(unlockView([BYID['envoy-dragon']], 'A secret code awakens a God card. You own 1 copy; only 1 can go in a deck.', BYID['envoy-dragon'].story), true)), 350); }
+    else if (code && stageOfCode(code) === 97) { const was = P.testMode; testMode(); msg = was ? 'TEST mode is already on. Everything is unlocked.' : 'TEST mode on: every card, stage, God card and 99,999 atoms unlocked!'; }
     else if (code) { const i = stageOfCode(code); if (i > 1 && i > P.unlocked) { P.unlocked = i; msg = 'Stage ' + i + ' unlocked!'; } else msg = i > 0 ? 'That stage is already unlocked.' : 'Code not recognised.'; }
     save(); close(); toast(msg);
   }
