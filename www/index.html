@@ -782,8 +782,8 @@ function sha256(m) {
   }
   return H.map(x => (x >>> 0).toString(16).padStart(8, '0')).join('');
 }
-const CODE_SALT = 'nw-stage1-a8aa187275b0', CODE_HASH = { 97: '45467e4423ab1f27ad3fb6e2c2219b92a83005876082619668c8b02dd108cb2a', 98: '546a6ad08e36bdce48e48c56df0de6ef066e39429517329ab55d0b28eb7f01ae', 99: 'd827f943518e23f0256ba90d27598ac1fe4fd5821e32975b2c22e6961497592d', 2: '2b7153ff035d351a5f8768b686ee56b0ae0ac336fd0bea0439ff1dd7db5917ed', 3: '8e7dfe67479e5968731f73f787e246a6921b3f94e484d102c2b600aedb24d8f7', 4: '39919acc3c8735eed6987a4ad6225e1e110bef861cce6aed5eb7205229344d21', 5: '7b57241e68c4fb116e9838a0a7a2b398bbe7063ca997fbf4d998584796a5598e' };
-const stageOfCode = raw => { const c = String(raw).toUpperCase().replace(/[^A-Z0-9]/g, ''); if (c.length < 6) return 0; const h = sha256(CODE_SALT + c); for (const k in CODE_HASH) if (CODE_HASH[k] === h) return +k; return 0; };
+const CODE_SALT = 'nw-stage1-a8aa187275b0', CODE_HASH = { 97: '45467e4423ab1f27ad3fb6e2c2219b92a83005876082619668c8b02dd108cb2a', 98: ['546a6ad08e36bdce48e48c56df0de6ef066e39429517329ab55d0b28eb7f01ae', '6f658069e97451eb7291bb60049fee1e2744cdbada62786b7371c75a259cebc8'], 99: ['d827f943518e23f0256ba90d27598ac1fe4fd5821e32975b2c22e6961497592d', '056961ff62aceffb4dad23a874fab0d5dba18a18b483409aa703cd67869a2918'], 2: ['2b7153ff035d351a5f8768b686ee56b0ae0ac336fd0bea0439ff1dd7db5917ed', '958967e805e8a6bcfe9fdeaf7b750fd8f8009e7102bf44cf41323c12b64841c8'], 3: ['8e7dfe67479e5968731f73f787e246a6921b3f94e484d102c2b600aedb24d8f7', '2b63b63b76629f9fb0c250d676f0f41eeb4a1daf6c57f6c2b8b501f30bb5231a'], 4: ['39919acc3c8735eed6987a4ad6225e1e110bef861cce6aed5eb7205229344d21', 'b1263c0981e6e5042bd7217f2e79d2c1c078d4c894146b452804a75649739224'], 5: ['7b57241e68c4fb116e9838a0a7a2b398bbe7063ca997fbf4d998584796a5598e', '3487a6d7fca62a5e37bdbf1e40a5247417907d562017b9e7306d45dcb32ceaa5'] };
+const stageOfCode = raw => { const c = String(raw).toUpperCase().replace(/[^A-Z0-9]/g, ''); if (c.length < 6) return 0; const h = sha256(CODE_SALT + c); for (const k in CODE_HASH) { const v = CODE_HASH[k]; if (v === h || (Array.isArray(v) && v.includes(h))) return +k }; return 0; };
 const KEY = 'nuclearWarsProfile4';
 const P = { name: 'Atom Cadet', exp: 0, atoms: 150, gems: 5, sound: true, unlocked: 1,
   owned: { proton: 6, neutron: 6, electron: 5, 'up-quark': 5, 'down-quark': 5, 'particle-accelerator': 3, 'the-nucleus': 4 }, cleared: {}, pity: 0,
@@ -848,7 +848,7 @@ const MAP_BG = [['#f3c070', '#e29a48'], ['#d9cf7c', '#aebb55'], ['#c4b0ee', '#94
 function mapLayout(T, portrait) { const pts = []; for (let i = 0; i < T; i++) { const u = T > 1 ? i / (T - 1) : 0.5, w = Math.sin(i * 1.45 + 0.5); pts.push(portrait ? [50 + 27 * w, 9 + u * 82] : [9 + u * 82, 50 + 25 * w]); } return pts; }
 function mapPath(pts) { let d = 'M' + pts[0][0] + ' ' + pts[0][1]; for (let i = 0; i < pts.length - 1; i++) { const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)]; d += ' C' + (p1[0] + (p2[0] - p0[0]) / 6).toFixed(2) + ' ' + (p1[1] + (p2[1] - p0[1]) / 6).toFixed(2) + ',' + (p2[0] - (p3[0] - p1[0]) / 6).toFixed(2) + ' ' + (p2[1] - (p3[1] - p1[1]) / 6).toFixed(2) + ',' + p2[0] + ' ' + p2[1]; } return d; }
 function campaignView() {
-  const st = STAGES[cStage - 1], nodes = stageNodes(cStage), N = nodes.length, clr = Math.min(P.cleared[cStage] || 0, N), locked = cStage > P.unlocked, tut = cStage === 1, trialStop = cStage === 5, T = N + (tut ? 1 : 0) + (trialStop ? 1 : 0);
+  syncUnlocks(); const st = STAGES[cStage - 1], nodes = stageNodes(cStage), N = nodes.length, clr = Math.min(P.cleared[cStage] || 0, N), locked = cStage > P.unlocked, tut = cStage === 1, trialStop = cStage === 5, T = N + (tut ? 1 : 0) + (trialStop ? 1 : 0);
   const portrait = window.matchMedia('(max-aspect-ratio: 1/1)').matches, pts = mapLayout(T, portrait), bg = MAP_BG[cStage - 1];
   let nodesHtml = '', curSeen = false, marker = '';
   for (let i = 0; i < T; i++) {
@@ -916,6 +916,7 @@ function grantWin(lv) {
   const mult = P.boost > 0 ? 2 : 1; if (P.boost > 0) P.boost--;
   P.atoms += r.atoms * mult; P.exp += r.exp * mult; let msg = 'Victory! +' + r.atoms * mult + ' atoms, +' + r.exp * mult + ' EXP.';
   if (first) P.cleared[cStage] = lv;
+  if (stageDone(cStage) && cStage < 5 && P.unlocked < cStage + 1) { P.unlocked = cStage + 1; msg += ' Stage ' + (cStage + 1) + ' is now unlocked!'; }
   const fresh = [];
   nodeCards(cStage, node).forEach(c => { const want = isLand(c) ? LAND_SLOTS : SINGLE.has(c.id) ? 1 : 3; if (copies(c.id) < want) { P.owned[c.id] = want; fresh.push(c); } });
   save(); paint();
@@ -926,6 +927,7 @@ function grantWin(lv) {
 /* ---------- BOSS TRIAL: the last part of the campaign. Four bosses; beat one to win its card. ---------- */
 const TRIAL = ['helium-4', 'radium-226', 'cobalt-60', 'stellar-fusion-core'];
 const stageDone = n => (P.cleared[n] || 0) >= stageNodes(n).length;
+function syncUnlocks() { let ch = 0; for (let n = 1; n < 5; n++) if (stageDone(n) && P.unlocked < n + 1) { P.unlocked = n + 1; ch = 1; } if (ch) save(); }
 const campaignDone = () => STAGES.every(s => stageDone(s.n));
 const trialReward = id => ({ atoms: 400 + TRIAL.indexOf(id) * 100, exp: 300, gems: 3 });
 const TRIAL_HARD = {
@@ -1513,13 +1515,10 @@ function vsStartView() {
 const PV = { q: [], w: null, on: false, launched: false };
 const isPvp = () => !!G && G.kind === 'pvp';
 function pvAbort() { const w = PV.w; PV.w = null; const o = document.getElementById('pvRps'); if (o) o.remove(); if (w) w.rej(ABORT); }
-function pvReset() { pvAbort(); PV.q = []; PV.on = false; PV.launched = false; PV.oppAv = null; }
+function pvReset() { pvAbort(); PV.q = []; PV.on = false; PV.launched = false; }
 function pvSend(m) { NET.send({ t: 'pv', m }); }
-function avPub() { const a = Object.assign({}, avCfg()); delete a.thumb; return P.avatar ? a : null; }
-function avClean(a) { if (!a || typeof a !== 'object') return null; const o = {}, n = (k, mx) => { const v = +a[k]; if (v >= 0 && v < mx) o[k] = v | 0; }, w = (k, list) => { if (list.includes(a[k])) o[k] = a[k]; }; n('skin', AV_SKIN.length); n('hairC', AV_HAIR.length); n('topC', AV_CLOTH.length); n('pants', AV_PANTS.length); n('build', 3); w('hair', ['none', 'short', 'spiky', 'long', 'bun', 'afro']); w('top', ['tee', 'hood', 'lab', 'hero']); w('hat', ['none', 'cap', 'beanie', 'grad', 'crown']); w('glasses', ['none', 'round', 'shades']); if (typeof a.photo === 'string' && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(a.photo) && a.photo.length < 200000) o.photo = a.photo; return o; }
 function pvIn(m) {
   if (!m) return;
-  if (m.k === 'avatar') { PV.oppAv = avClean(m.av); if (G && G.kind === 'pvp' && G.opp && !G.dead) { fieldGrp.remove(G.opp.grp); buildOpponent(); } return; }
   if (m.k === 'forfeit') { pvOppGone('The other player forfeited the match.'); return; }
   if (PV.w) { const w = PV.w; PV.w = null; w.res(m); } else PV.q.push(m);
 }
@@ -1547,7 +1546,7 @@ function pvLaunch() {
   if (PV.launched || current !== 'vsstart') return;
   const host = L.role === 'host', mine = myDeck(L.stage), theirs = host ? L.gdeck : L.hdeck;
   if (!theirs || !theirs.cards || !theirs.lands || theirs.lands.length !== mine.lands.length) { toast('The two decks could not be matched. Back to the lobby.'); NET.send({ t: 'bye' }); lobbyReset(); show('battle'); return; }
-  PV.launched = true; PV.on = true; pvSend({ k: 'avatar', av: avPub() });
+  PV.launched = true; PV.on = true;
   const ok = launchBattle({ kind: 'pvp', stage: L.stage, seed: L.seed, mine, theirs, hostFirst: host ? L.hseat !== 'p2' : L.seat === 1, foeName: (host ? L.guest : (L.oppName || L.host)) || 'Opponent',
     onEnd: () => { pvReset(); NET.send({ t: 'bye' }); lobbyReset(); show('battle'); } });
   if (ok) { close(); if (L.relay && L.seat === 1) relaySnapPush(); } else { pvReset(); NET.send({ t: 'bye' }); lobbyReset(); show('battle'); }
@@ -1578,7 +1577,7 @@ async function xferRead(code) {
 function settingsView() {
   return '<h2>Settings</h2><div class="field"><label for="nm">Player name</label><input id="nm" maxlength="14" value="' + esc(P.name) + '"></div>' +
     '<div class="tgl"><span>Sound</span><button id="snd" aria-pressed="' + P.sound + '">' + (P.sound ? 'On' : 'Off') + '</button></div>' +
-    '<h3>Teacher code</h3><p class="note">Your teacher gives a code after each lesson. Some special codes unlock a secret God card. It unlocks that stage’s cards, boosters and campaign. Unlocked up to Stage ' + P.unlocked + '.</p>' +
+    '<h3>Secret code</h3><p class="note">Finish a stage (beat its boss) in the Campaign to unlock the next stage, with its cards, boosters and campaign. Special codes unlock secret God cards. Unlocked up to Stage ' + P.unlocked + '.</p>' +
     '<div class="field"><label for="tc">Enter code</label><input id="tc" autocapitalize="characters" placeholder="Code"></div>' +
     '<h3>Move progress to another device</h3><p class="note">Make a transfer code here, then paste it into Settings on your other phone, tablet or computer. Your cards, decks, EXP and unlocked stages go with it.</p>' +
     '<div class="row"><button class="btn alt" data-xfer>Export or import progress</button></div>' +
@@ -2935,7 +2934,7 @@ function buildAvatar(cfg0) {
     }
   };
 }
-function avOppModel(cfg) { const fig = buildAvatar(cfg || avCfg()); fig.arms.forEach(a => { a.visible = false; }); const holder = new THREE.Group(); fig.root.scale.setScalar(2.6); fig.root.position.y = -0.7; holder.add(fig.root); return { root: holder, update: (t, dt) => fig.update(t, dt) }; }
+function avOppModel() { const fig = buildAvatar(avCfg()); fig.arms.forEach(a => { a.visible = false; }); const holder = new THREE.Group(); fig.root.scale.setScalar(2.6); fig.root.position.y = -0.7; holder.add(fig.root); return { root: holder, update: (t, dt) => fig.update(t, dt) }; }
 const avReact = k => { if (G && G.av) G.av.react(k); };
 function buildAvatarFig() {
   if (window.__auto || !T3 || G.kind === 'spec' || !window.THREE) return;
@@ -2953,7 +2952,7 @@ const AV_OPT = {
 function avatarView() {
   const d = avDraft = avCfg(), sw = (k, arr) => arr.map((c, i) => '<button class="swb' + (d[k] === i ? ' on' : '') + '" data-avk="' + k + '" data-avv="' + i + '" style="background:' + avHex(c) + '" aria-label="' + k + ' ' + (i + 1) + '"></button>').join('');
   const ch = k => AV_OPT[k].map(o => '<button class="chip' + (String(d[k]) === String(o[0]) ? ' on' : '') + '" data-avk="' + k + '" data-avv="' + o[0] + '">' + o[1] + '</button>').join('');
-  return '<h2>My Avatar</h2><p class="sub">Add your photo and dress up your character. It stands at your side of the table in every battle. In a versus match your opponent sees it across theirs.</p><div class="avx"><div class="avl"><canvas id="avc" width="260" height="320"></canvas>' +
+  return '<h2>My Avatar</h2><p class="sub">Add your photo and dress up your character. It sits across the table in every battle, holding the cards.</p><div class="avx"><div class="avl"><canvas id="avc" width="260" height="320"></canvas>' +
     '<div class="row" style="justify-content:center;margin-top:6px"><label class="btn alt avup">📷 Photo<input type="file" id="avf" accept="image/*" hidden></label><button class="btn alt" data-avx="nophoto">No photo</button></div><p class="note" style="margin:4px 0 0">Drag to turn · tap to cheer</p></div>' +
     '<div class="avr"><div class="field"><label for="avn">Name</label><input id="avn" maxlength="14" value="' + esc(P.name) + '"></div>' +
     '<div class="avg"><b>Skin</b><div class="sw">' + sw('skin', AV_SKIN) + '</div></div><div class="avg"><b>Body</b><div class="chips">' + ch('build') + '</div></div>' +
@@ -3000,11 +2999,10 @@ function avPhoto(file) {
 /* ---------- the opponent across the table ---------- */
 const OPP_X = 0, OPP_Z = -8.4, OPP_Y = -2.5, TABLE_EDGE = -7.6;
 function buildOpponent() {
-  /* the far seat shows what my opponent looks like: their own avatar in a versus match, the foe's own character otherwise (never my avatar) */
-  const useAv = G.kind === 'pvp' && !window.__auto && !!window.THREE, oa = useAv ? Object.assign({}, AV_DEF, PV.oppAv || {}) : null;
-  const foe = G.focus, key = foe && MODEL_KEY[foe.id], mk = (key && T3.BUILD[key]) || T3.BUILD.proton, col = useAv ? (AV_SKIN[oa.skin] || 0xf5c9a0) : ((foe && CARD_COL[foe.id]) || 0xffa927);
+  const useAv = !!P.avatar && !window.__auto && G.kind !== 'spec' && !!window.THREE;
+  const foe = G.focus, key = foe && MODEL_KEY[foe.id], mk = (key && T3.BUILD[key]) || T3.BUILD.proton, col = useAv ? (AV_SKIN[avCfg().skin] || 0xf5c9a0) : ((foe && CARD_COL[foe.id]) || 0xffa927);
   const grp = new THREE.Group(); fieldGrp.add(grp);
-  const model = useAv ? avOppModel(oa) : mk(); if (!useAv) model.root.scale.setScalar(2.5); model.root.position.set(OPP_X, OPP_Y, OPP_Z); model.root.rotation.y = 0; grp.add(model.root);
+  const model = useAv ? avOppModel() : mk(); if (!useAv) model.root.scale.setScalar(2.5); model.root.position.set(OPP_X, OPP_Y, OPP_Z); model.root.rotation.y = 0; grp.add(model.root);
   /* only the face and hands show: hide the model's own limbs, shadow disc and orbiting bits */
   if (!useAv && !(foe && foe.boss)) (model.root.children[0] ? model.root.children[0].children.slice(1) : []).concat(model.root.children.slice(1)).forEach(c => { let tube = false; c.traverse(n => { if (n.geometry && n.geometry.type === 'TubeGeometry') tube = true; }); const orbit = c.children.length > 0 && c.children.every(k => k.position.length() > 0.9); if (tube || orbit || (c.isMesh && c.geometry.type === 'PlaneGeometry')) c.visible = false; });
   const seg = r => {
