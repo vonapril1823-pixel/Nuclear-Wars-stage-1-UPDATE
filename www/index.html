@@ -1000,10 +1000,18 @@ const deckOk = (n, k) => { const d = getDeck(n, k); return d.cards.length === de
 const BD = { stage: 1, q: '', type: 'all', locked: false, sel: null };
 const bd = $('#builder'), prev = $('#prev');
 const TYPE_ORDER = ['landscape', 'creature', 'spell', 'building', 'defense'];
+const VOID_DECK = { 'void-dragon': 1, electron: 3, proton: 3, neutron: 2, 'down-quark': 1, 'up-quark': 1, 'iron-56': 2, 'alpha-decay': 3, 'environmental-tracer': 2, 'particle-accelerator': 2, 'mass-into-energy': 2, 'fission-balance': 1, 'lead-shield': 2, 'paper-sheet': 1, time: 1, 'imaging-fade': 2, 'carbon-dating': 1 };
+function buildVoidDeck() {
+  let k = 0; for (let i = 1; i <= SLOTS && !k; i++) { const x = P.decks[dkey(1, i)]; if (x && x.name === 'Void Dragon') k = i; } for (let i = 1; i <= SLOTS && !k; i++) { const x = P.decks[dkey(1, i)]; if (!x || !x.cards || !x.cards.length) k = i; } if (!k) k = slotOf(BD.stage); setSlot(BD.stage, k); BD.sel = null;
+  const d = getDeck(BD.stage), cards = [], miss = new Set();
+  Object.keys(VOID_DECK).forEach(id => { for (let i = 0; i < VOID_DECK[id]; i++) { if (BYID[id] && copies(id) > i) cards.push(id); else miss.add(id); } });
+  d.cards = cards; d.lands = [0, 0, 0, 0]; d.name = 'Void Dragon'; save(); renderAll(); const nm = $('#bName'); if (nm) nm.value = d.name;
+  toast(miss.size ? 'Void deck saved in slot ' + k + ', but ' + miss.size + ' card type(s) are not owned yet: ' + [...miss].map(i => BYID[i] ? BYID[i].name : i).slice(0, 3).join(', ') + (miss.size > 3 ? '…' : '') : 'Void Dragon deck saved in slot ' + k + '. 30 cards, 4 Nucleus landscapes.');
+}
 function openBuilder0() {
   BD.view = 'edit';
   BD.stage = 1;
-  bd.innerHTML = '<div class="bb-top"><button class="bb-back" id="bBack" aria-label="Back to menu">\u2B8C</button><div class="bb-title">DECK BUILD</div><div class="bb-tabs" id="bSlots" role="group" aria-label="Save slot"></div><input class="bb-nameinp" id="bName" maxlength="16" aria-label="Deck name"><span class="sp"></span><span class="status" id="bStatus"></span><button class="bb-mini" id="bStarter">Starter deck</button><button class="bb-mini" id="bAuto">Auto-fill</button><button class="bb-mini" id="bClear">Clear</button></div>' +
+  bd.innerHTML = '<div class="bb-top"><button class="bb-back" id="bBack" aria-label="Back to menu">\u2B8C</button><div class="bb-title">DECK BUILD</div><div class="bb-tabs" id="bSlots" role="group" aria-label="Save slot"></div><input class="bb-nameinp" id="bName" maxlength="16" aria-label="Deck name"><span class="sp"></span><span class="status" id="bStatus"></span><button class="bb-mini" id="bStarter">Starter deck</button><button class="bb-mini" id="bVoid">Void deck</button><button class="bb-mini" id="bAuto">Auto-fill</button><button class="bb-mini" id="bClear">Clear</button></div>' +
     '<div class="bb-main"><aside class="bb-left"><div class="bb-prev" id="bPrev"></div><div class="bb-data" id="bData"></div></aside>' +
     '<section class="bb-mid"><div class="bb-hd"><span>LANDSCAPE DECK</span><b id="bLandInfo"></b></div><div class="bb-box bb-slots dz" id="bLands" data-zone="lands"></div>' +
     '<div class="bb-hd"><span>MAIN DECK</span><b id="bDeckInfo"></b></div><div class="bb-box bb-grid bb-deck dz" id="bDeck" data-zone="deck"></div><div class="rulebar" id="bRules"></div></section>' +
@@ -1020,7 +1028,7 @@ function openBuilder0() {
   $('#bName').oninput = e => { getDeck(BD.stage).name = e.target.value.slice(0, 16); const b = $('#bSlots [aria-pressed=true]'); if (b) b.textContent = slotLabel(BD.stage, slotOf(BD.stage)); };
   $('#bName').onchange = () => save();
   $('#bStarter').onclick = () => { P.decks[dkey(1, slotOf(1))] = Object.assign(P.decks[dkey(1, slotOf(1))] || {}, { lands: [0, 0, 0, 0], cards: STARTER_DECK.filter(id => copies(id) > 0) }); refresh(); toast('Starter deck restored.'); };
-  $('#bAuto').onclick = autoFill; $('#bClear').onclick = () => { const d = getDeck(BD.stage); d.cards = []; d.lands = []; save(); renderAll(); };
+  $('#bVoid').onclick = buildVoidDeck; $('#bAuto').onclick = autoFill; $('#bClear').onclick = () => { const d = getDeck(BD.stage); d.cards = []; d.lands = []; save(); renderAll(); };
   $('#bAdd').onclick = bbAdd; $('#bRemove').onclick = bbRemove; $('#bDetail').onclick = openDetail; $('#bSave').onclick = () => { save(); toast('Deck saved.'); };
   $('#bDetailBox').onclick = () => { $('#bDetailBox').hidden = true; };
   renderAll();
@@ -1028,7 +1036,7 @@ function openBuilder0() {
 /* ---------- deck list: the first screen of Deck Lab ---------- */
 function deckCover(d) {
   const cnt = {}; d.cards.forEach(id => { const c = BYID[id]; if (c && c.art && c.kind === 'creature') cnt[id] = (cnt[id] || 0) + 1; });
-  const top = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0], c = top ? BYID[top] : (d.lands[0] != null ? BYID[LANDS[d.lands[0]].card] : null);
+  const top = cnt['void-dragon'] ? 'void-dragon' : Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0], c = top ? BYID[top] : (d.lands[0] != null ? BYID[LANDS[d.lands[0]].card] : null);
   return c && c.art ? '<img alt="" src="' + c.art + '" draggable="false">' : '<span class="dl-nart">N<b>W</b></span>';
 }
 function openBuilder() {
@@ -4079,7 +4087,7 @@ function resolveAttack(att, crit) {
   const foeSide = other(att.side), def = defOf(foeSide, att.alane != null ? att.alane : att.lane), dmg = att.atk * (crit ? 2 : 1);
   shake = RM ? 0 : 0.3; if (crit) pop(new V3(att.base.x, 2.4, att.base.z), 'CRITICAL!', 'gold');
   if (def && !def.dying) {
-    const back = def.atk, hp0 = def.hp, dealt = dealDamage(def, dmg, att.card, { atk: true }), prev = def._prev, gone = prev && def.dying && def.hp > 0; def._prev = false; if (!gone) dealDamage(att, back, def.card, { atk: true });
+    const back = def.atk, hp0 = def.hp, dealt = dealDamage(def, dmg, att.card, { atk: true }), prev = def._prev, gone = prev && def.dying && def.hp > 0; def._prev = false; /* No counter-damage: the attacker is never hurt by the creature it hits. */
     /* SP is only hurt when the lane is empty, or when the attack is bigger than the blocker's HP: the leftover damage after the kill goes through. A blocker that survives lets nothing through. */
     const thru = prev ? 0 : def.hp <= 0 ? Math.max(0, dealt - hp0) : 0; if (thru > 0) { pop(new V3(def.base.x, 2.1, def.base.z), 'Breakthrough', 'gold'); lossSP(foeSide, thru); }
   }
