@@ -1513,10 +1513,13 @@ function vsStartView() {
 const PV = { q: [], w: null, on: false, launched: false };
 const isPvp = () => !!G && G.kind === 'pvp';
 function pvAbort() { const w = PV.w; PV.w = null; const o = document.getElementById('pvRps'); if (o) o.remove(); if (w) w.rej(ABORT); }
-function pvReset() { pvAbort(); PV.q = []; PV.on = false; PV.launched = false; }
+function pvReset() { pvAbort(); PV.q = []; PV.on = false; PV.launched = false; PV.oppAv = null; }
 function pvSend(m) { NET.send({ t: 'pv', m }); }
+function avPub() { const a = Object.assign({}, avCfg()); delete a.thumb; return P.avatar ? a : null; }
+function avClean(a) { if (!a || typeof a !== 'object') return null; const o = {}, n = (k, mx) => { const v = +a[k]; if (v >= 0 && v < mx) o[k] = v | 0; }, w = (k, list) => { if (list.includes(a[k])) o[k] = a[k]; }; n('skin', AV_SKIN.length); n('hairC', AV_HAIR.length); n('topC', AV_CLOTH.length); n('pants', AV_PANTS.length); n('build', 3); w('hair', ['none', 'short', 'spiky', 'long', 'bun', 'afro']); w('top', ['tee', 'hood', 'lab', 'hero']); w('hat', ['none', 'cap', 'beanie', 'grad', 'crown']); w('glasses', ['none', 'round', 'shades']); if (typeof a.photo === 'string' && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(a.photo) && a.photo.length < 200000) o.photo = a.photo; return o; }
 function pvIn(m) {
   if (!m) return;
+  if (m.k === 'avatar') { PV.oppAv = avClean(m.av); if (G && G.kind === 'pvp' && G.opp && !G.dead) { fieldGrp.remove(G.opp.grp); buildOpponent(); } return; }
   if (m.k === 'forfeit') { pvOppGone('The other player forfeited the match.'); return; }
   if (PV.w) { const w = PV.w; PV.w = null; w.res(m); } else PV.q.push(m);
 }
@@ -1544,7 +1547,7 @@ function pvLaunch() {
   if (PV.launched || current !== 'vsstart') return;
   const host = L.role === 'host', mine = myDeck(L.stage), theirs = host ? L.gdeck : L.hdeck;
   if (!theirs || !theirs.cards || !theirs.lands || theirs.lands.length !== mine.lands.length) { toast('The two decks could not be matched. Back to the lobby.'); NET.send({ t: 'bye' }); lobbyReset(); show('battle'); return; }
-  PV.launched = true; PV.on = true;
+  PV.launched = true; PV.on = true; pvSend({ k: 'avatar', av: avPub() });
   const ok = launchBattle({ kind: 'pvp', stage: L.stage, seed: L.seed, mine, theirs, hostFirst: host ? L.hseat !== 'p2' : L.seat === 1, foeName: (host ? L.guest : (L.oppName || L.host)) || 'Opponent',
     onEnd: () => { pvReset(); NET.send({ t: 'bye' }); lobbyReset(); show('battle'); } });
   if (ok) { close(); if (L.relay && L.seat === 1) relaySnapPush(); } else { pvReset(); NET.send({ t: 'bye' }); lobbyReset(); show('battle'); }
@@ -2932,7 +2935,7 @@ function buildAvatar(cfg0) {
     }
   };
 }
-function avOppModel() { const fig = buildAvatar(avCfg()); fig.arms.forEach(a => { a.visible = false; }); const holder = new THREE.Group(); fig.root.scale.setScalar(2.6); fig.root.position.y = -0.7; holder.add(fig.root); return { root: holder, update: (t, dt) => fig.update(t, dt) }; }
+function avOppModel(cfg) { const fig = buildAvatar(cfg || avCfg()); fig.arms.forEach(a => { a.visible = false; }); const holder = new THREE.Group(); fig.root.scale.setScalar(2.6); fig.root.position.y = -0.7; holder.add(fig.root); return { root: holder, update: (t, dt) => fig.update(t, dt) }; }
 const avReact = k => { if (G && G.av) G.av.react(k); };
 function buildAvatarFig() {
   if (window.__auto || !T3 || G.kind === 'spec' || !window.THREE) return;
@@ -2950,7 +2953,7 @@ const AV_OPT = {
 function avatarView() {
   const d = avDraft = avCfg(), sw = (k, arr) => arr.map((c, i) => '<button class="swb' + (d[k] === i ? ' on' : '') + '" data-avk="' + k + '" data-avv="' + i + '" style="background:' + avHex(c) + '" aria-label="' + k + ' ' + (i + 1) + '"></button>').join('');
   const ch = k => AV_OPT[k].map(o => '<button class="chip' + (String(d[k]) === String(o[0]) ? ' on' : '') + '" data-avk="' + k + '" data-avv="' + o[0] + '">' + o[1] + '</button>').join('');
-  return '<h2>My Avatar</h2><p class="sub">Add your photo and dress up your character. It sits across the table in every battle, holding the cards.</p><div class="avx"><div class="avl"><canvas id="avc" width="260" height="320"></canvas>' +
+  return '<h2>My Avatar</h2><p class="sub">Add your photo and dress up your character. It stands at your side of the table in every battle. In a versus match your opponent sees it across theirs.</p><div class="avx"><div class="avl"><canvas id="avc" width="260" height="320"></canvas>' +
     '<div class="row" style="justify-content:center;margin-top:6px"><label class="btn alt avup">📷 Photo<input type="file" id="avf" accept="image/*" hidden></label><button class="btn alt" data-avx="nophoto">No photo</button></div><p class="note" style="margin:4px 0 0">Drag to turn · tap to cheer</p></div>' +
     '<div class="avr"><div class="field"><label for="avn">Name</label><input id="avn" maxlength="14" value="' + esc(P.name) + '"></div>' +
     '<div class="avg"><b>Skin</b><div class="sw">' + sw('skin', AV_SKIN) + '</div></div><div class="avg"><b>Body</b><div class="chips">' + ch('build') + '</div></div>' +
@@ -2997,10 +3000,11 @@ function avPhoto(file) {
 /* ---------- the opponent across the table ---------- */
 const OPP_X = 0, OPP_Z = -8.4, OPP_Y = -2.5, TABLE_EDGE = -7.6;
 function buildOpponent() {
-  const useAv = !!P.avatar && !window.__auto && G.kind !== 'spec' && !!window.THREE;
-  const foe = G.focus, key = foe && MODEL_KEY[foe.id], mk = (key && T3.BUILD[key]) || T3.BUILD.proton, col = useAv ? (AV_SKIN[avCfg().skin] || 0xf5c9a0) : ((foe && CARD_COL[foe.id]) || 0xffa927);
+  /* the far seat shows what my opponent looks like: their own avatar in a versus match, the foe's own character otherwise (never my avatar) */
+  const useAv = G.kind === 'pvp' && !window.__auto && !!window.THREE, oa = useAv ? Object.assign({}, AV_DEF, PV.oppAv || {}) : null;
+  const foe = G.focus, key = foe && MODEL_KEY[foe.id], mk = (key && T3.BUILD[key]) || T3.BUILD.proton, col = useAv ? (AV_SKIN[oa.skin] || 0xf5c9a0) : ((foe && CARD_COL[foe.id]) || 0xffa927);
   const grp = new THREE.Group(); fieldGrp.add(grp);
-  const model = useAv ? avOppModel() : mk(); if (!useAv) model.root.scale.setScalar(2.5); model.root.position.set(OPP_X, OPP_Y, OPP_Z); model.root.rotation.y = 0; grp.add(model.root);
+  const model = useAv ? avOppModel(oa) : mk(); if (!useAv) model.root.scale.setScalar(2.5); model.root.position.set(OPP_X, OPP_Y, OPP_Z); model.root.rotation.y = 0; grp.add(model.root);
   /* only the face and hands show: hide the model's own limbs, shadow disc and orbiting bits */
   if (!useAv && !(foe && foe.boss)) (model.root.children[0] ? model.root.children[0].children.slice(1) : []).concat(model.root.children.slice(1)).forEach(c => { let tube = false; c.traverse(n => { if (n.geometry && n.geometry.type === 'TubeGeometry') tube = true; }); const orbit = c.children.length > 0 && c.children.every(k => k.position.length() > 0.9); if (tube || orbit || (c.isMesh && c.geometry.type === 'PlaneGeometry')) c.visible = false; });
   const seg = r => {
