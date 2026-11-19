@@ -782,8 +782,8 @@ function sha256(m) {
   }
   return H.map(x => (x >>> 0).toString(16).padStart(8, '0')).join('');
 }
-const CODE_SALT = 'nw-stage1-a8aa187275b0', CODE_HASH = { 97: '45467e4423ab1f27ad3fb6e2c2219b92a83005876082619668c8b02dd108cb2a', 98: ['546a6ad08e36bdce48e48c56df0de6ef066e39429517329ab55d0b28eb7f01ae', '6f658069e97451eb7291bb60049fee1e2744cdbada62786b7371c75a259cebc8'], 99: ['d827f943518e23f0256ba90d27598ac1fe4fd5821e32975b2c22e6961497592d', '056961ff62aceffb4dad23a874fab0d5dba18a18b483409aa703cd67869a2918'], 2: ['2b7153ff035d351a5f8768b686ee56b0ae0ac336fd0bea0439ff1dd7db5917ed', '958967e805e8a6bcfe9fdeaf7b750fd8f8009e7102bf44cf41323c12b64841c8'], 3: ['8e7dfe67479e5968731f73f787e246a6921b3f94e484d102c2b600aedb24d8f7', '2b63b63b76629f9fb0c250d676f0f41eeb4a1daf6c57f6c2b8b501f30bb5231a'], 4: ['39919acc3c8735eed6987a4ad6225e1e110bef861cce6aed5eb7205229344d21', 'b1263c0981e6e5042bd7217f2e79d2c1c078d4c894146b452804a75649739224'], 5: ['7b57241e68c4fb116e9838a0a7a2b398bbe7063ca997fbf4d998584796a5598e', '3487a6d7fca62a5e37bdbf1e40a5247417907d562017b9e7306d45dcb32ceaa5'] };
-const stageOfCode = raw => { const c = String(raw).toUpperCase().replace(/[^A-Z0-9]/g, ''); if (c.length < 6) return 0; const h = sha256(CODE_SALT + c); for (const k in CODE_HASH) { const v = CODE_HASH[k]; if (v === h || (Array.isArray(v) && v.includes(h))) return +k }; return 0; };
+const CODE_SALT = 'nw-stage1-a8aa187275b0', CODE_HASH = { 97: '45467e4423ab1f27ad3fb6e2c2219b92a83005876082619668c8b02dd108cb2a', 98: '546a6ad08e36bdce48e48c56df0de6ef066e39429517329ab55d0b28eb7f01ae', 99: 'd827f943518e23f0256ba90d27598ac1fe4fd5821e32975b2c22e6961497592d', 2: '2b7153ff035d351a5f8768b686ee56b0ae0ac336fd0bea0439ff1dd7db5917ed', 3: '8e7dfe67479e5968731f73f787e246a6921b3f94e484d102c2b600aedb24d8f7', 4: '39919acc3c8735eed6987a4ad6225e1e110bef861cce6aed5eb7205229344d21', 5: '7b57241e68c4fb116e9838a0a7a2b398bbe7063ca997fbf4d998584796a5598e' };
+const stageOfCode = raw => { const c = String(raw).toUpperCase().replace(/[^A-Z0-9]/g, ''); if (c.length < 6) return 0; const h = sha256(CODE_SALT + c); for (const k in CODE_HASH) if (CODE_HASH[k] === h) return +k; return 0; };
 const KEY = 'nuclearWarsProfile4';
 const P = { name: 'Atom Cadet', exp: 0, atoms: 150, gems: 5, sound: true, unlocked: 1,
   owned: { proton: 6, neutron: 6, electron: 5, 'up-quark': 5, 'down-quark': 5, 'particle-accelerator': 3, 'the-nucleus': 4 }, cleared: {}, pity: 0,
@@ -848,7 +848,7 @@ const MAP_BG = [['#f3c070', '#e29a48'], ['#d9cf7c', '#aebb55'], ['#c4b0ee', '#94
 function mapLayout(T, portrait) { const pts = []; for (let i = 0; i < T; i++) { const u = T > 1 ? i / (T - 1) : 0.5, w = Math.sin(i * 1.45 + 0.5); pts.push(portrait ? [50 + 27 * w, 9 + u * 82] : [9 + u * 82, 50 + 25 * w]); } return pts; }
 function mapPath(pts) { let d = 'M' + pts[0][0] + ' ' + pts[0][1]; for (let i = 0; i < pts.length - 1; i++) { const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)]; d += ' C' + (p1[0] + (p2[0] - p0[0]) / 6).toFixed(2) + ' ' + (p1[1] + (p2[1] - p0[1]) / 6).toFixed(2) + ',' + (p2[0] - (p3[0] - p1[0]) / 6).toFixed(2) + ' ' + (p2[1] - (p3[1] - p1[1]) / 6).toFixed(2) + ',' + p2[0] + ' ' + p2[1]; } return d; }
 function campaignView() {
-  syncUnlocks(); const st = STAGES[cStage - 1], nodes = stageNodes(cStage), N = nodes.length, clr = Math.min(P.cleared[cStage] || 0, N), locked = cStage > P.unlocked, tut = cStage === 1, trialStop = cStage === 5, T = N + (tut ? 1 : 0) + (trialStop ? 1 : 0);
+  const st = STAGES[cStage - 1], nodes = stageNodes(cStage), N = nodes.length, clr = Math.min(P.cleared[cStage] || 0, N), locked = cStage > P.unlocked, tut = cStage === 1, trialStop = cStage === 5, T = N + (tut ? 1 : 0) + (trialStop ? 1 : 0);
   const portrait = window.matchMedia('(max-aspect-ratio: 1/1)').matches, pts = mapLayout(T, portrait), bg = MAP_BG[cStage - 1];
   let nodesHtml = '', curSeen = false, marker = '';
   for (let i = 0; i < T; i++) {
@@ -916,7 +916,6 @@ function grantWin(lv) {
   const mult = P.boost > 0 ? 2 : 1; if (P.boost > 0) P.boost--;
   P.atoms += r.atoms * mult; P.exp += r.exp * mult; let msg = 'Victory! +' + r.atoms * mult + ' atoms, +' + r.exp * mult + ' EXP.';
   if (first) P.cleared[cStage] = lv;
-  if (stageDone(cStage) && cStage < 5 && P.unlocked < cStage + 1) { P.unlocked = cStage + 1; msg += ' Stage ' + (cStage + 1) + ' is now unlocked!'; }
   const fresh = [];
   nodeCards(cStage, node).forEach(c => { const want = isLand(c) ? LAND_SLOTS : SINGLE.has(c.id) ? 1 : 3; if (copies(c.id) < want) { P.owned[c.id] = want; fresh.push(c); } });
   save(); paint();
@@ -927,7 +926,6 @@ function grantWin(lv) {
 /* ---------- BOSS TRIAL: the last part of the campaign. Four bosses; beat one to win its card. ---------- */
 const TRIAL = ['helium-4', 'radium-226', 'cobalt-60', 'stellar-fusion-core'];
 const stageDone = n => (P.cleared[n] || 0) >= stageNodes(n).length;
-function syncUnlocks() { let ch = 0; for (let n = 1; n < 5; n++) if (stageDone(n) && P.unlocked < n + 1) { P.unlocked = n + 1; ch = 1; } if (ch) save(); }
 const campaignDone = () => STAGES.every(s => stageDone(s.n));
 const trialReward = id => ({ atoms: 400 + TRIAL.indexOf(id) * 100, exp: 300, gems: 3 });
 const TRIAL_HARD = {
@@ -1000,18 +998,10 @@ const deckOk = (n, k) => { const d = getDeck(n, k); return d.cards.length === de
 const BD = { stage: 1, q: '', type: 'all', locked: false, sel: null };
 const bd = $('#builder'), prev = $('#prev');
 const TYPE_ORDER = ['landscape', 'creature', 'spell', 'building', 'defense'];
-const VOID_DECK = { 'void-dragon': 1, electron: 3, proton: 3, neutron: 2, 'down-quark': 1, 'up-quark': 1, 'iron-56': 2, 'alpha-decay': 3, 'environmental-tracer': 2, 'particle-accelerator': 2, 'mass-into-energy': 2, 'fission-balance': 1, 'lead-shield': 2, 'paper-sheet': 1, time: 1, 'imaging-fade': 2, 'carbon-dating': 1 };
-function buildVoidDeck() {
-  let k = 0; for (let i = 1; i <= SLOTS && !k; i++) { const x = P.decks[dkey(1, i)]; if (x && x.name === 'Void Dragon') k = i; } for (let i = 1; i <= SLOTS && !k; i++) { const x = P.decks[dkey(1, i)]; if (!x || !x.cards || !x.cards.length) k = i; } if (!k) k = slotOf(BD.stage); setSlot(BD.stage, k); BD.sel = null;
-  const d = getDeck(BD.stage), cards = [], miss = new Set();
-  Object.keys(VOID_DECK).forEach(id => { for (let i = 0; i < VOID_DECK[id]; i++) { if (BYID[id] && copies(id) > i) cards.push(id); else miss.add(id); } });
-  d.cards = cards; d.lands = [0, 0, 0, 0]; d.name = 'Void Dragon'; save(); renderAll(); const nm = $('#bName'); if (nm) nm.value = d.name;
-  toast(miss.size ? 'Void deck saved in slot ' + k + ', but ' + miss.size + ' card type(s) are not owned yet: ' + [...miss].map(i => BYID[i] ? BYID[i].name : i).slice(0, 3).join(', ') + (miss.size > 3 ? '…' : '') : 'Void Dragon deck saved in slot ' + k + '. 30 cards, 4 Nucleus landscapes.');
-}
 function openBuilder0() {
   BD.view = 'edit';
   BD.stage = 1;
-  bd.innerHTML = '<div class="bb-top"><button class="bb-back" id="bBack" aria-label="Back to menu">\u2B8C</button><div class="bb-title">DECK BUILD</div><div class="bb-tabs" id="bSlots" role="group" aria-label="Save slot"></div><input class="bb-nameinp" id="bName" maxlength="16" aria-label="Deck name"><span class="sp"></span><span class="status" id="bStatus"></span><button class="bb-mini" id="bStarter">Starter deck</button><button class="bb-mini" id="bVoid">Void deck</button><button class="bb-mini" id="bAuto">Auto-fill</button><button class="bb-mini" id="bClear">Clear</button></div>' +
+  bd.innerHTML = '<div class="bb-top"><button class="bb-back" id="bBack" aria-label="Back to menu">\u2B8C</button><div class="bb-title">DECK BUILD</div><div class="bb-tabs" id="bSlots" role="group" aria-label="Save slot"></div><input class="bb-nameinp" id="bName" maxlength="16" aria-label="Deck name"><span class="sp"></span><span class="status" id="bStatus"></span><button class="bb-mini" id="bStarter">Starter deck</button><button class="bb-mini" id="bAuto">Auto-fill</button><button class="bb-mini" id="bClear">Clear</button></div>' +
     '<div class="bb-main"><aside class="bb-left"><div class="bb-prev" id="bPrev"></div><div class="bb-data" id="bData"></div></aside>' +
     '<section class="bb-mid"><div class="bb-hd"><span>LANDSCAPE DECK</span><b id="bLandInfo"></b></div><div class="bb-box bb-slots dz" id="bLands" data-zone="lands"></div>' +
     '<div class="bb-hd"><span>MAIN DECK</span><b id="bDeckInfo"></b></div><div class="bb-box bb-grid bb-deck dz" id="bDeck" data-zone="deck"></div><div class="rulebar" id="bRules"></div></section>' +
@@ -1028,7 +1018,7 @@ function openBuilder0() {
   $('#bName').oninput = e => { getDeck(BD.stage).name = e.target.value.slice(0, 16); const b = $('#bSlots [aria-pressed=true]'); if (b) b.textContent = slotLabel(BD.stage, slotOf(BD.stage)); };
   $('#bName').onchange = () => save();
   $('#bStarter').onclick = () => { P.decks[dkey(1, slotOf(1))] = Object.assign(P.decks[dkey(1, slotOf(1))] || {}, { lands: [0, 0, 0, 0], cards: STARTER_DECK.filter(id => copies(id) > 0) }); refresh(); toast('Starter deck restored.'); };
-  $('#bVoid').onclick = buildVoidDeck; $('#bAuto').onclick = autoFill; $('#bClear').onclick = () => { const d = getDeck(BD.stage); d.cards = []; d.lands = []; save(); renderAll(); };
+  $('#bAuto').onclick = autoFill; $('#bClear').onclick = () => { const d = getDeck(BD.stage); d.cards = []; d.lands = []; save(); renderAll(); };
   $('#bAdd').onclick = bbAdd; $('#bRemove').onclick = bbRemove; $('#bDetail').onclick = openDetail; $('#bSave').onclick = () => { save(); toast('Deck saved.'); };
   $('#bDetailBox').onclick = () => { $('#bDetailBox').hidden = true; };
   renderAll();
@@ -1036,7 +1026,7 @@ function openBuilder0() {
 /* ---------- deck list: the first screen of Deck Lab ---------- */
 function deckCover(d) {
   const cnt = {}; d.cards.forEach(id => { const c = BYID[id]; if (c && c.art && c.kind === 'creature') cnt[id] = (cnt[id] || 0) + 1; });
-  const top = cnt['void-dragon'] ? 'void-dragon' : Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0], c = top ? BYID[top] : (d.lands[0] != null ? BYID[LANDS[d.lands[0]].card] : null);
+  const top = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0], c = top ? BYID[top] : (d.lands[0] != null ? BYID[LANDS[d.lands[0]].card] : null);
   return c && c.art ? '<img alt="" src="' + c.art + '" draggable="false">' : '<span class="dl-nart">N<b>W</b></span>';
 }
 function openBuilder() {
@@ -1209,21 +1199,41 @@ const L = { role: '', stage: 1, ready: false, guest: null, ready2: false, spec: 
 const rcode = () => String(1000 + Math.floor(Math.random() * 9000));
 function mkNet() {
 const NET = {
-  pc: null, dc: null, onopen: null, onmsg: null, onclose: null,
+  pc: null, dc: null, onopen: null, onmsg: null, onclose: null, onweak: null, lastRx: 0, weak: 0, hbT: 0, dropT: 0, hbSeen: false, rtt: 0, outbox: [],
   b64(u) { let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); },
   ub64(s) { return Uint8Array.from(atob(s), c => c.charCodeAt(0)); },
   async pack(o) { const raw = new TextEncoder().encode(JSON.stringify(o)); if (window.CompressionStream) { const b = await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer(); return 'Z' + NET.b64(new Uint8Array(b)); } return 'R' + NET.b64(raw); },
   async unpack(s) { s = String(s).replace(/\s+/g, ''); if (!s) throw new Error('empty'); let raw = NET.ub64(s.slice(1)); if (s[0] === 'Z') { if (!window.DecompressionStream) throw new Error('unsupported'); raw = new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer()); } return JSON.parse(new TextDecoder().decode(raw)); },
-  close(keep) { const pc = NET.pc; if (!keep) NET.onclose = null; try { NET.dc && NET.dc.close(); } catch (_) {} try { pc && pc.close(); } catch (_) {} NET.pc = NET.dc = null; },
-  mk() { const pc = new RTCPeerConnection({ iceServers: [] }); NET.pc = pc; pc.onconnectionstatechange = () => { if (NET.pc === pc && (pc.connectionState === 'failed' || pc.connectionState === 'closed' || pc.connectionState === 'disconnected')) NET.onclose && NET.onclose(pc.connectionState); }; return pc; },
-  wire(dc) { NET.dc = dc; let fired = false; const opened = () => { if (fired || NET.dc !== dc) return; fired = true; NET.onopen && NET.onopen(); }; dc.onopen = opened; if (dc.readyState === 'open') setTimeout(opened, 0); dc.onmessage = e => { let m; try { m = JSON.parse(e.data); } catch (_) { return; } NET.onmsg && NET.onmsg(m); }; dc.onclose = () => { if (NET.dc === dc && NET.onclose) NET.onclose('closed'); }; },
+  close(keep) { const pc = NET.pc; if (!keep) NET.onclose = null; NET.hbStop(); NET.weak = 0; NET.hbSeen = false; NET.outbox = []; try { NET.dc && NET.dc.close(); } catch (_) {} try { pc && pc.close(); } catch (_) {} NET.pc = NET.dc = null; },
+  mk() { const pc = new RTCPeerConnection({ iceServers: [] }); NET.pc = pc; pc.onconnectionstatechange = () => {
+    if (NET.pc !== pc) return; const st = pc.connectionState;
+    if (st === 'connected') { clearTimeout(NET.dropT); NET.dropT = 0; if (NET.weak) NET.touch(); }
+    else if (st === 'disconnected') { if (!NET.weak) { NET.weak = Date.now(); NET.onweak && NET.onweak(1); } clearTimeout(NET.dropT); NET.dropT = setTimeout(() => { if (NET.pc === pc && pc.connectionState !== 'connected') NET.onclose && NET.onclose('disconnected-long'); }, 20000); }
+    else if (st === 'failed' || st === 'closed') NET.onclose && NET.onclose(st);
+  }; return pc; },
+  wire(dc) { NET.dc = dc; let fired = false; const opened = () => { if (fired || NET.dc !== dc) return; fired = true; NET.hbStart(); NET.onopen && NET.onopen(); }; dc.onopen = opened; if (dc.readyState === 'open') setTimeout(opened, 0);
+    dc.onmessage = e => { NET.touch(); let m; try { m = JSON.parse(e.data); } catch (_) { return; } if (m && m.t === '~p') { NET.hbSeen = true; try { dc.send('{"t":"~a","ts":' + (+m.ts || 0) + '}'); } catch (_) {} return; } if (m && m.t === '~a') { NET.hbSeen = true; NET.rtt = Math.max(0, Date.now() - (+m.ts || Date.now())); return; } NET.onmsg && NET.onmsg(m); };
+    dc.onclose = () => { if (NET.dc === dc) { NET.hbStop(); if (NET.onclose) NET.onclose('closed'); } }; },
   ice(pc) { return new Promise(r => { if (pc.iceGatheringState === 'complete') return r(); const t = setTimeout(r, 4000); pc.addEventListener('icegatheringstatechange', () => { if (pc.iceGatheringState === 'complete') { clearTimeout(t); r(); } }); }); },
   /* browsers hide a phone's local address behind a .local name that often cannot be resolved on a hotspot; a camera permission, even briefly, makes them show the real address */
   async warm() { try { if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) { const st = await Promise.race([navigator.mediaDevices.getUserMedia({ video: true }), new Promise((_, r) => setTimeout(r, 8000))]); st.getTracks().forEach(t => t.stop()); } } catch (_) {} },
   async makeOffer() { await NET.warm(); NET.close(true); const pc = NET.mk(); NET.wire(pc.createDataChannel('nw', { ordered: true })); await pc.setLocalDescription(await pc.createOffer()); await NET.ice(pc); return NET.pack({ t: 'o', s: pc.localDescription.sdp }); },
   async acceptAnswer(code) { const o = await NET.unpack(code); if (o.t !== 'a' || !NET.pc) throw new Error('bad'); await NET.pc.setRemoteDescription({ type: 'answer', sdp: o.s }); },
   async makeAnswer(code) { const o = await NET.unpack(code); if (o.t !== 'o') throw new Error('bad'); await NET.warm(); NET.close(true); const pc = NET.mk(); pc.ondatachannel = e => NET.wire(e.channel); await pc.setRemoteDescription({ type: 'offer', sdp: o.s }); await pc.setLocalDescription(await pc.createAnswer()); await NET.ice(pc); return NET.pack({ t: 'a', s: pc.localDescription.sdp }); },
-  send(m) { if (NET.dc && NET.dc.readyState === 'open') { try { NET.dc.send(JSON.stringify(m)); } catch (_) {} } },
+  send(m) { const s = JSON.stringify(m), dc = NET.dc; if (dc && dc.readyState === 'open') { try { dc.send(s); return true; } catch (_) {} } if (m && m.t !== 'hello' && NET.outbox.length < 300) NET.outbox.push(s); return false; },
+  flush() { const dc = NET.dc; while (NET.outbox.length && dc && dc.readyState === 'open') { try { dc.send(NET.outbox[0]); NET.outbox.shift(); } catch (_) { break; } } },
+  /* link health: a ping every 1.5 s. Silence for 4.5 s shows a "weak" banner; silence past the limit (20 s in a lobby, 30 s in a match) or a lost data channel ends the link. A short Wi-Fi hiccup no longer kicks anyone out. */
+  touch() { NET.lastRx = Date.now(); if (NET.weak) { NET.weak = 0; NET.onweak && NET.onweak(2); } },
+  limit() { try { return PV.on ? 15000 : 20000; } catch (_) { return 20000; } },
+  hbStart() { NET.hbStop(); NET.lastRx = Date.now(); NET.hbT = setInterval(NET.hbTick, 1500); },
+  hbStop() { clearInterval(NET.hbT); NET.hbT = 0; clearTimeout(NET.dropT); NET.dropT = 0; },
+  hbTick() {
+    const dc = NET.dc; if (!dc || dc.readyState !== 'open') return; NET.flush();
+    try { dc.send('{"t":"~p","ts":' + Date.now() + '}'); } catch (_) {}
+    if (!NET.hbSeen) return; const idle = Date.now() - NET.lastRx;
+    if (idle > NET.limit()) { NET.hbStop(); NET.onclose && NET.onclose('timeout'); }
+    else if (idle > 4500 && !NET.weak) { NET.weak = Date.now(); NET.onweak && NET.onweak(1); }
+  },
   get open() { return !!NET.dc && NET.dc.readyState === 'open'; }
 };
 return NET;
@@ -1257,14 +1267,14 @@ function memLobbyMsg(m) {
 }
 const sendLobby = () => { MEM.forEach(m => { if (m.role === 'p1' || m.role === 'p2') sendTo(m, memLobbyMsg(m)); }); specAll(specInfoMsg()); };
 const lobbyRefresh = () => { if (L.role === 'host') specAll(specInfoMsg()); hostRefresh(); };
-function lobbyReset(msg) { NET.close(); Object.assign(L, { role: '', ready: false, guest: null, ready2: false, offer: '', answer: '', host: null, hostReady: false, demo: false, gdeck: null, hdeck: null, link: 'idle', joining: false, sinfo: null, sstart: null, specOffer: '', specPeer: null, watch: false, relay: false, hseat: 'p1', invPeer: null, seat: 0, oppName: '', lastSnap: null }); specCloseAll(); lanHostStop(); if (msg) toast(msg); }
+function lobbyReset(msg) { NET.close(); netWeakUI(0); keepAwake(false); holdClear(); Object.assign(L, { role: '', ready: false, guest: null, ready2: false, offer: '', answer: '', host: null, hostReady: false, demo: false, gdeck: null, hdeck: null, link: 'idle', joining: false, sinfo: null, sstart: null, specOffer: '', specPeer: null, watch: false, relay: false, hseat: 'p1', invPeer: null, seat: 0, oppName: '', lastSnap: null }); specCloseAll(); lanHostStop(); if (msg) toast(msg); }
 function memAttach(peer) {
   const s = { id: ++memId, peer, name: 'Guest', role: '', ready: false, deck: null };
-  MEM.push(s); if (peer) { peer.onmsg = m => memMsg(s, m); peer.onclose = () => memDrop(s); }
+  MEM.push(s); if (peer) { peer.onmsg = m => memMsg(s, m); peer.onclose = () => memDrop(s); peer.onweak = st => { if ((s.role === 'p1' || s.role === 'p2') && (PV.on || L.relay)) netWeakUI(st, peer, s.name); else if (!st || st === 2) netWeakUI(0); }; }
   return s;
 }
 function memDrop(s) {
-  const i = MEM.indexOf(s); if (i < 0) return; MEM.splice(i, 1);
+  const i = MEM.indexOf(s); if (i < 0) return; MEM.splice(i, 1); netWeakUI(0);
   try { if (s.peer) { s.peer.onclose = null; s.peer.onmsg = null; s.peer.close(); } } catch (_) {}
   if (L.invPeer === s) L.invPeer = null; syncSpecs();
   if (L.relay && (s.role === 'p1' || s.role === 'p2')) { const o = memBySeat(s.role === 'p1' ? 'p2' : 'p1'); if (o) sendTo(o, { t: 'pv', m: { k: 'forfeit' } }); if (!memBySeat('p1') && !memBySeat('p2')) L.relay = false; }
@@ -1322,9 +1332,93 @@ function lobbyMsg(m) {
 }
 NET.onmsg = lobbyMsg;
 function wireNet() {
-  NET.onopen = () => { L.link = 'open'; L.joining = false; if (L.role === 'guest' || L.role === 'spec') { L.gotHost = false; const hi = () => NET.send({ t: 'hello', name: P.name, role: L.role === 'spec' ? 'spec' : 'play', v: 1 }); hi(); let tries = 0; const rt = setInterval(() => { if (L.gotHost || ++tries > 4 || !NET.open || (L.role !== 'guest' && L.role !== 'spec')) { clearInterval(rt); return; } hi(); }, 2000); } else { const s = $('#netState'); if (s) s.textContent = 'Connected. Waiting for the other player…'; } };
-  NET.onclose = why => { if (G && G.kind === 'spec' && !G.dead) { closeGame(); lobbyReset('The connection to the host was lost.'); show('battle'); return; } if (PV.on) { if (why !== 'disconnected') pvLost(); return; } if (current === 'host' || current === 'guest' || current === 'join' || current === 'vsstart' || current === 'specwait') { const was = L.role; lobbyReset(was === 'host' ? 'Connection lost.' : 'Connection to the host was lost.'); show('battle'); } };
+  NET.onweak = st => netWeakUI(st, NET);
+  NET.onopen = () => { keepAwake(true); if (PV.hold) { L.joining = false; pvResumeSend(); return; } if (SPH) { L.joining = false; specRejoinEnd(); } L.link = 'open'; L.joining = false; if (L.role === 'guest' || L.role === 'spec') { L.gotHost = false; const hi = () => NET.send({ t: 'hello', name: P.name, role: L.role === 'spec' ? 'spec' : 'play', v: 1 }); hi(); let tries = 0; const rt = setInterval(() => { if (L.gotHost || ++tries > 4 || !NET.open || (L.role !== 'guest' && L.role !== 'spec')) { clearInterval(rt); return; } hi(); }, 2000); } else { const s = $('#netState'); if (s) s.textContent = 'Connected. Waiting for the other player…'; } };
+  NET.onclose = why => { netWeakUI(0); if (SPH) return; if (specCanRejoin()) { specRejoinStart(); return; } if (G && G.kind === 'spec' && !G.dead) { closeGame(); lobbyReset('The connection to the host was lost.'); show('battle'); return; } if (PV.on) { pvHold(why); return; } if (current === 'host' || current === 'guest' || current === 'join' || current === 'vsstart' || current === 'specwait') { const was = L.role; lobbyReset(was === 'host' ? 'Connection lost.' : 'Connection to the host was lost.'); show('battle'); } };
 }
+
+/* ---------- link health: weak-signal banner, keep the screen awake, resume checks ---------- */
+let nbEl = null, nbT = 0, wakeL = null;
+function netWeakUI(st, src, who) {
+  if (st === 1 && (PV.hold || SPH)) return;
+  clearInterval(nbT); nbT = 0;
+  if (!st || st === 2) { const was = nbEl && nbEl.style.display !== 'none'; if (nbEl) nbEl.style.display = 'none'; if (st === 2 && was) toast('Connection restored.'); return; }
+  src = src || NET;
+  if (!nbEl) { nbEl = document.createElement('div'); nbEl.id = 'netBanner'; nbEl.setAttribute('role', 'status'); nbEl.setAttribute('aria-live', 'polite'); nbEl.style.cssText = 'position:fixed;left:50%;top:max(8px,env(safe-area-inset-top));transform:translateX(-50%);z-index:99999;background:#2b1b00;color:#ffd34f;border:2px solid #ffa927;border-radius:12px;padding:8px 14px;font:600 14px system-ui,sans-serif;box-shadow:0 4px 18px #0008;display:none;max-width:92vw;text-align:center;pointer-events:none'; document.body.appendChild(nbEl); }
+  const upd = () => { const lim = src.limit ? src.limit() : 20000, left = Math.max(0, Math.ceil((lim - (Date.now() - src.lastRx)) / 1000)); nbEl.textContent = 'Connection weak · ' + (who ? esc(who) + ' is not responding' : 'waiting for the other device') + ' · ' + (PV.on ? 'pausing' : 'giving up') + ' in ' + left + 's'; };
+  upd(); nbEl.style.display = 'block'; nbT = setInterval(upd, 1000);
+}
+async function keepAwake(on) {
+  try { if (on) { if (!wakeL && navigator.wakeLock) { wakeL = await navigator.wakeLock.request('screen'); wakeL.addEventListener('release', () => { wakeL = null; }); } } else if (wakeL) { const w = wakeL; wakeL = null; await w.release(); } } catch (_) { wakeL = null; }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  if (L.role || PV.on) keepAwake(true);
+  /* timers were frozen while the app was away: restart the silence clock and ping at once */
+  const now = Date.now(); [NET].concat(MEM.map(m => m.peer).filter(Boolean)).forEach(n => { if (n.open) { n.lastRx = now; try { n.dc.send('{"t":"~p","ts":' + now + '}'); } catch (_) {} } });
+});
+
+/* reconnect:start */
+var SPH = null; let holdEl = null;
+function holdUI(on, title, text, btn, fn) {
+  if (!on) { if (holdEl) holdEl.style.display = 'none'; return; }
+  if (!holdEl) { holdEl = document.createElement('div'); holdEl.id = 'linkHold'; holdEl.setAttribute('role', 'alertdialog'); holdEl.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(5,10,25,.86);display:none;align-items:center;justify-content:center;padding:16px';
+    holdEl.innerHTML = '<div style="background:#0d1a33;border:3px solid #ffa927;border-radius:16px;padding:18px 22px;max-width:420px;text-align:center;color:#fff;font:600 15px system-ui,sans-serif"><h2 id="lhT" style="margin:0 0 8px;color:#ffd34f"></h2><p id="lhP" style="margin:0 0 6px"></p><p id="lhC" style="margin:0 0 12px;opacity:.8;font-weight:500"></p><button class="btn alt" id="lhB"></button></div>'; document.body.appendChild(holdEl); }
+  holdEl.querySelector('#lhT').textContent = title; holdEl.querySelector('#lhP').textContent = text || ''; holdEl.querySelector('#lhC').textContent = '';
+  const b = holdEl.querySelector('#lhB'); b.textContent = btn; b.onclick = fn; holdEl.style.display = 'flex';
+}
+function holdSet(text, left, tail) { if (!holdEl) return; holdEl.querySelector('#lhP').textContent = text; holdEl.querySelector('#lhC').textContent = tail + ' · gives up in ' + Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0'); }
+function holdClear() { try { if (SPH) { clearInterval(SPH.timer); SPH = null; } if (PV.hold) pvHoldEnd(true); holdUI(false); } catch (_) {} }
+/* --- players: a lost link pauses the match for up to 2 minutes while the phones find each other again --- */
+function pvHold(why) {
+  if (PV.hold) return;
+  if (!isPvp() || G.over || G.shown || L.relay || !lanp() || (L.role !== 'host' && !L.hostIp)) { pvLost(); return; }
+  PV.hold = { t: Date.now(), tries: 0, busy: false, last: 0 }; keepAwake(true); netWeakUI(0);
+  const guest = L.role !== 'host', name = (guest ? (L.oppName || L.host) : L.guest) || 'the other player';
+  holdUI(true, 'Connection lost', '', 'Leave the match', () => pvAbandon('You left the match.'));
+  PV.holdT = setInterval(() => pvHoldTick(guest, name), 1000); pvHoldTick(guest, name);
+}
+function pvHoldTick(guest, name) {
+  const h = PV.hold; if (!h) return; if (!G || G.dead || G.over) { pvHoldEnd(true); return; }
+  const left = Math.max(0, 120 - Math.floor((Date.now() - h.t) / 1000));
+  holdSet(guest ? 'Reconnecting to ' + name + '… attempt ' + Math.max(1, h.tries) : 'Waiting for ' + name + ' to reconnect…', left, 'The match is paused and resumes by itself');
+  if (left <= 0) { pvAbandon('The connection could not be restored. The match was ended.'); return; }
+  if (guest && !h.busy && Date.now() - h.last > 3000) lanRejoin();
+}
+function pvHoldEnd(silent) { if (!PV.hold) return; clearInterval(PV.holdT); PV.holdT = 0; PV.hold = null; holdUI(false); if (!silent) { toast('Reconnected. The match continues.'); try { NET.touch(); } catch (_) {} } }
+function pvAbandon(msg) { const o = G; pvHoldEnd(true); if (o && o.kind === 'pvp' && !o.over) { try { NET.send({ t: 'pv', m: { k: 'forfeit' } }); } catch (_) {} } closeGame(); toast(msg); if (o && o.onEnd) o.onEnd(false, true); }
+function pvResumeSend() { NET.send({ t: 'pv', m: { k: 'resume', rn: PV.rn } }); } /* tells the other phone how many of its messages arrived */
+function pvResend(rn) { PV.log.filter(x => x.n > rn).forEach(x => NET.send({ t: 'pv', m: x })); } /* sends again whatever the other phone missed */
+function pvHostResume(peer) {
+  if (!PV.hold) { try { peer.close(); } catch (_) {} return; }
+  const old = NET; NET = peer; wireNet(); NET.onmsg = lobbyMsg; try { old.onclose = null; old.close(); } catch (_) {}
+  pvResumeSend();
+}
+async function lanRejoin() {
+  const p = lanp(), h = PV.hold; if (!p || !h || h.busy || !L.hostIp) return; h.busy = true; h.tries++; h.last = Date.now();
+  setTimeout(() => { if (PV.hold === h) h.busy = false; }, 8000);
+  try { const r = await p.tcpConnect({ ip: L.hostIp, port: 47322 }); LAN.cid = r.id; L.joining = true; await p.tcpSend({ id: r.id, line: JSON.stringify({ t: 'hi', role: 'play', name: P.name, rejoin: String(L.seed) }) }); } catch (_) { h.busy = false; }
+}
+/* --- spectators: keep the last board on screen and rejoin the same game by themselves --- */
+const specCanRejoin = () => L.role === 'spec' && !!L.hostIp && !!lanp() && ((G && G.kind === 'spec' && !G.dead) || current === 'specwait');
+function specRejoinStart() {
+  if (SPH) return; SPH = { t: Date.now(), busy: false, tries: 0, last: 0, timer: 0 }; netWeakUI(0);
+  holdUI(true, 'Connection lost', '', 'Stop watching', () => specRejoinFail('You stopped watching.'));
+  SPH.timer = setInterval(specRejoinTick, 1000); specRejoinTick();
+}
+function specRejoinTick() {
+  const h = SPH; if (!h) return; const left = Math.max(0, 60 - Math.floor((Date.now() - h.t) / 1000));
+  holdSet('Reconnecting to the game… attempt ' + Math.max(1, h.tries), left, 'The board comes back by itself'); if (left <= 0) { specRejoinFail('The connection to the host was lost.'); return; }
+  if (!h.busy && Date.now() - h.last > 3000) specRejoinTry();
+}
+async function specRejoinTry() {
+  const p = lanp(), h = SPH; if (!p || !h || h.busy || !L.hostIp) return; h.busy = true; h.tries++; h.last = Date.now();
+  setTimeout(() => { if (SPH === h) h.busy = false; }, 8000);
+  try { const r = await p.tcpConnect({ ip: L.hostIp, port: 47322 }); LAN.cid = r.id; L.joining = true; await p.tcpSend({ id: r.id, line: JSON.stringify({ t: 'hi', role: 'spec', name: P.name }) }); } catch (_) { h.busy = false; }
+}
+function specRejoinEnd() { if (!SPH) return; clearInterval(SPH.timer); SPH = null; holdUI(false); toast('Reconnected.'); }
+function specRejoinFail(msg) { if (SPH) { clearInterval(SPH.timer); SPH = null; } holdUI(false); if (G && G.kind === 'spec' && !G.dead) closeGame(); lobbyReset(msg); show('battle'); }
+/* reconnect:end */
 
 /* ---------- Same-hotspot lobby list (Android app): UDP announcements + a TCP line to swap the link codes ---------- */
 const lanp = () => window.__NWLAN || ((window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.NWLan) || null);
@@ -1335,7 +1429,7 @@ async function lanHostStart() {
   const p = lanp(); if (!p) return; lanWire(); L.hid = L.hid || Math.random().toString(36).slice(2, 10);
   try { await p.tcpListen({ port: 47322 }); } catch (_) {}
   clearInterval(LAN.hb);
-  const ann = () => { if (L.role !== 'host') { clearInterval(LAN.hb); return; } p.udpBroadcast({ port: 47321, text: JSON.stringify({ a: 'nw', id: L.hid, n: P.name, s: L.stage, g: ['p1', 'p2'].some(seatFree) ? 0 : 1, pc: (hostPlays() ? 1 : 0) + MEM.filter(m => m.role === 'p1' || m.role === 'p2').length, w: SPECS.length, sp: L.spec ? 1 : 0, m: (PV.on || L.relay) ? 1 : 0, c: L.code }) }).catch(() => {}); };
+  const ann = () => { if (L.role !== 'host') { clearInterval(LAN.hb); return; } p.udpBroadcast({ port: 47321, text: JSON.stringify({ a: 'nw', id: L.hid, n: P.name, s: L.stage, g: ['p1', 'p2'].some(seatFree) ? 0 : 1, pc: (PV.on || L.relay) ? 2 : (hostPlays() ? 1 : 0) + MEM.filter(m => m.role === 'p1' || m.role === 'p2').length, w: SPECS.length, sp: L.spec ? 1 : 0, m: (PV.on || L.relay) ? 1 : 0, c: L.code }) }).catch(() => {}); };
   LAN.hb = setInterval(ann, 1200); ann();
 }
 function lanHostStop() { clearInterval(LAN.hb); LAN.hb = 0; const p = lanp(); if (!p) return; for (const id in LAN.conns) { try { p.tcpClose({ id: +id }); } catch (_) {} } LAN.conns = {}; try { p.tcpStopListen(); } catch (_) {} }
@@ -1351,24 +1445,24 @@ function vsParts() {
   const a = Object.values(LAN.lobbies).sort((x, y) => (x.n > y.n) - (x.n < y.n));
   if (!LAN.lobbies[LAN.sel]) LAN.sel = (a.find(vsOpen) || a[0] || {}).id || '';
   const sel = LAN.lobbies[LAN.sel], lan = !!lanp();
-  const list = a.length ? a.map(l => '<button class="vsrow ' + (l.m ? 'run' : l.g ? 'full' : 'open') + (l.id === LAN.sel ? ' sel' : '') + '" role="option" aria-selected="' + (l.id === LAN.sel) + '" data-lsel="' + esc(l.id) + '">' + esc(l.n) + '’s Game (' + (l.pc != null ? l.pc : (l.g || l.m ? 2 : 1)) + '/2)' + (l.sp ? ' (spectators)' : '') + (l.m ? ' · match running' : '') + '</button>').join('')
+  const list = a.length ? a.map(l => '<button class="vsrow ' + (l.m ? 'run' : l.g ? 'full' : 'open') + (l.id === LAN.sel ? ' sel' : '') + '" role="option" aria-selected="' + (l.id === LAN.sel) + '" data-lsel="' + esc(l.id) + '">' + esc(l.n) + '’s Game (' + (l.pc != null ? l.pc : (l.g || l.m ? 2 : 1)) + '/2)' + (l.sp ? ' (spectators)' : '') + (l.m ? (l.sp ? ' · ● LIVE · tap Watch' : ' · match running') : '') + '</button>').join('')
     : '<div class="vsempty">' + (lan ? 'Searching… No games found yet. Make sure you and the host are on the same hotspot, or tap Create Game to host one.' : 'Games on your Wi-Fi are listed here in the Android app. This HTML file cannot see other phones, so tap Create Game, or Join with code.') + '</div>';
   const k = (n, v) => '<div class="vsk"><span>' + n + '</span><b>' + v + '</b></div>';
-  const det = sel ? '<div class="vst">' + esc(sel.n) + '’s Game</div><div class="vsd">' + k('Host', esc(sel.n)) + k('Format', 'Stage ' + sel.s + (STAGES[sel.s - 1] ? ': ' + esc(STAGES[sel.s - 1].name) : '')) + k('Players', (sel.pc != null ? sel.pc : (sel.g || sel.m ? 2 : 1)) + ' / 2') + k('Status', sel.m ? 'Match running' : sel.g ? 'Full' : 'Waiting for a player') + k('Spectators', sel.sp ? 'Allowed' + (sel.w ? ' · ' + sel.w + ' watching' : '') : 'Off') + k('Room', esc(sel.c || '')) + k('Game Speed', 'Fast') + '</div>'
+  const det = sel ? '<div class="vst">' + esc(sel.n) + '’s Game</div><div class="vsd">' + k('Host', esc(sel.n)) + k('Format', 'Stage ' + sel.s + (STAGES[sel.s - 1] ? ': ' + esc(STAGES[sel.s - 1].name) : '')) + k('Players', (sel.pc != null ? sel.pc : (sel.g || sel.m ? 2 : 1)) + ' / 2') + k('Status', sel.m ? (sel.sp ? 'Match running · you can Watch it live' : 'Match running · spectators are off') : sel.g ? 'Full' : 'Waiting for a player') + k('Spectators', sel.sp ? 'Allowed' + (sel.w ? ' · ' + sel.w + ' watching' : '') : 'Off') + k('Room', esc(sel.c || '')) + k('Game Speed', 'Fast') + '</div>'
     : '<p class="note">Pick a game from the list to see its details. Tap Join Game to play, or Watch to spectate.</p>';
-  return { list, det, join: vsOpen(sel) && !L.joining, watch: !!sel && !!sel.sp && !L.joining };
+  return { list, det, join: vsOpen(sel) && !L.joining, watch: !!sel && !!sel.sp && !L.joining, live: !!sel && !!sel.m };
 }
 function vsRender() {
   const el = $('#lobList'); if (!el || current !== 'battle') return;
-  const v = vsParts(), key = v.list + '|' + v.det + '|' + v.join + v.watch;
+  const v = vsParts(), key = v.list + '|' + v.det + '|' + v.join + v.watch + v.live;
   if (key === vsRender.k) return; vsRender.k = key;
-  el.innerHTML = v.list; const d = $('#lobDet'); if (d) d.innerHTML = v.det; const j = $('#vsJoin'), w = $('#vsWatch'); if (j) j.disabled = !v.join; if (w) w.disabled = !v.watch;
+  el.innerHTML = v.list; const d = $('#lobDet'); if (d) d.innerHTML = v.det; const j = $('#vsJoin'), w = $('#vsWatch'); if (j) j.disabled = !v.join; if (w) { w.disabled = !v.watch; w.textContent = v.live ? 'Watch live' : 'Watch'; }
 }
 const lanStatus = t => { const s = $('#netState'); if (s) s.textContent = t; };
 function lanFail(t) { L.joining = false; L.role = ''; const p = lanp(); if (p && LAN.cid) { try { p.tcpClose({ id: LAN.cid }); } catch (_) {} } LAN.cid = 0; NET.close(); toast(t); lanStatus(t); }
 async function lanJoin(id, role) {
   const p = lanp(), lb = LAN.lobbies[id]; if (!p || !lb || L.joining) return;
-  L.joining = true; L.role = role === 'spec' ? 'spec' : 'guest'; L.host = lb.n; L.hostStage = lb.s; lanStatus('Connecting to ' + lb.n + '…');
+  L.joining = true; L.role = role === 'spec' ? 'spec' : 'guest'; L.host = lb.n; L.hostIp = lb.ip; L.hostStage = lb.s; lanStatus('Connecting to ' + lb.n + '…');
   try {
     const r = await p.tcpConnect({ ip: lb.ip, port: 47322 }); LAN.cid = r.id;
     await p.tcpSend({ id: r.id, line: JSON.stringify({ t: 'hi', role, name: P.name }) });
@@ -1385,6 +1479,7 @@ async function lanTcp(ev) {
     if (m.t === 'hi') {
       try {
         const play = m.role !== 'spec';
+        if (play && m.rejoin && PV.on && PV.hold && !L.relay && String(m.rejoin) === String(L.seed)) { const peer = mkNet(); c.peer = peer; c.resume = true; peer.onopen = () => pvHostResume(peer); say({ t: 'offer', code: await peer.makeOffer() }); setTimeout(() => { if (NET !== peer) { try { peer.close(); } catch (_) {} } }, 30000); return; }
         if (!play && !L.spec) { say({ t: 'no', why: 'The host has turned spectators off.' }); return; }
         if (play && (PV.on || L.relay)) { say({ t: 'no', why: 'A match is already running.' }); return; }
         if (play && !['p1', 'p2'].some(seatFree) && !L.spec) { say({ t: 'no', why: 'That lobby already has two players.' }); return; }
@@ -1396,8 +1491,8 @@ async function lanTcp(ev) {
       setTimeout(() => { try { p.tcpClose({ id: ev.id }); } catch (_) {} }, 4000);
     }
   } else if (ev.id === LAN.cid && (L.role === 'guest' || L.role === 'spec')) {
-    if (m.t === 'offer') { try { wireNet(); const code = await NET.makeAnswer(m.code); await p.tcpSend({ id: ev.id, line: JSON.stringify({ t: 'answer', code }) }); lanStatus('Linking the phones…'); } catch (_) { lanFail('Could not link. Try again.'); } }
-    else if (m.t === 'no') lanFail(m.why || 'The host could not take you.');
+    if (m.t === 'offer') { try { wireNet(); const code = await NET.makeAnswer(m.code); await p.tcpSend({ id: ev.id, line: JSON.stringify({ t: 'answer', code }) }); lanStatus('Linking the phones…'); } catch (_) { if (PV.hold || SPH) { if (PV.hold) PV.hold.busy = false; if (SPH) SPH.busy = false; } else lanFail('Could not link. Try again.'); } }
+    else if (m.t === 'no') { if (PV.hold || SPH) { if (PV.hold) PV.hold.busy = false; if (SPH) SPH.busy = false; } else lanFail(m.why || 'The host could not take you.'); }
   }
 }
 
@@ -1447,7 +1542,7 @@ async function newInvite() {
 }
 async function startHost() {
   if (!rtcOk()) { toast('This device cannot make a direct connection. The demo player still works.'); }
-  specCloseAll(); L.role = 'host'; L.code = rcode(); L.ready = false; L.hseat = 'p1'; L.guest = null; L.ready2 = false; L.offer = ''; L.link = 'idle'; L.demo = false; L.relay = false; L.invPeer = null; show('host'); lanHostStart();
+  keepAwake(true); specCloseAll(); L.role = 'host'; L.code = rcode(); L.ready = false; L.hseat = 'p1'; L.guest = null; L.ready2 = false; L.offer = ''; L.link = 'idle'; L.demo = false; L.relay = false; L.invPeer = null; show('host'); lanHostStart();
   if (!rtcOk()) return; await newInvite();
 }
 async function scanInto(id) {
@@ -1520,13 +1615,20 @@ function vsStartView() {
 /* ---------- Versus: live match over the link ----------
    Both phones run the same match from the same seed (lockstep). Each phone is "p" on its own screen and
    the other player is "e". Only decisions travel over the link: card plays, quiz results, picks, guard answers. */
-const PV = { q: [], w: null, on: false, launched: false };
+const PV = { q: [], w: null, on: false, launched: false, sn: 0, rn: 0, gap: false, endState: null, rssW: null, hold: null, holdT: 0, log: [] };
 const isPvp = () => !!G && G.kind === 'pvp';
 function pvAbort() { const w = PV.w; PV.w = null; const o = document.getElementById('pvRps'); if (o) o.remove(); if (w) w.rej(ABORT); }
-function pvReset() { pvAbort(); PV.q = []; PV.on = false; PV.launched = false; }
-function pvSend(m) { NET.send({ t: 'pv', m }); }
+function pvReset() { pvAbort(); PV.q = []; PV.on = false; PV.launched = false; PV.oppAv = null; PV.sn = 0; PV.rn = 0; PV.gap = false; PV.endState = null; PV.rssW = null; PV.log = []; pvHoldEnd(true); }
+function pvSend(m) { m.n = ++PV.sn; PV.log.push(m); NET.send({ t: 'pv', m }); }
+function avPub() { const a = Object.assign({}, avCfg()); delete a.thumb; return P.avatar ? a : null; }
+function avClean(a) { if (!a || typeof a !== 'object') return null; const o = {}, n = (k, mx) => { const v = +a[k]; if (v >= 0 && v < mx) o[k] = v | 0; }, w = (k, list) => { if (list.includes(a[k])) o[k] = a[k]; }; n('skin', AV_SKIN.length); n('hairC', AV_HAIR.length); n('topC', AV_CLOTH.length); n('pants', AV_PANTS.length); n('build', 3); w('hair', ['none', 'short', 'spiky', 'long', 'bun', 'afro']); w('top', ['tee', 'hood', 'lab', 'hero']); w('hat', ['none', 'cap', 'beanie', 'grad', 'crown']); w('glasses', ['none', 'round', 'shades']); if (typeof a.photo === 'string' && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(a.photo) && a.photo.length < 200000) o.photo = a.photo; return o; }
 function pvIn(m) {
   if (!m) return;
+  if (m.k === 'resume') { pvResend(+m.rn || 0); pvHoldEnd(); return; }
+  if (m.n) { if (m.n <= PV.rn) return; if (m.n > PV.rn + 1) PV.gap = true; PV.rn = m.n; } /* numbered messages: drop repeats, notice gaps */
+  if (m.k === 'rsq') { if (PV.endState) pvSend({ k: 'rss', st: PV.endState }); return; }
+  if (m.k === 'rss') { const w = PV.rssW; PV.rssW = null; if (w) w(m.st); return; }
+  if (m.k === 'avatar') { PV.oppAv = avClean(m.av); if (G && G.kind === 'pvp' && G.opp && !G.dead) { fieldGrp.remove(G.opp.grp); buildOpponent(); } return; }
   if (m.k === 'forfeit') { pvOppGone('The other player forfeited the match.'); return; }
   if (PV.w) { const w = PV.w; PV.w = null; w.res(m); } else PV.q.push(m);
 }
@@ -1536,6 +1638,53 @@ function pvTake(kind) {
     if (PV.q.length) { ok(PV.q.shift()); return; }
     PV.w = { res: ok, rej };
   });
+}
+/* ---------- match integrity: after every turn both phones compare a fingerprint of the whole board. If they differ, the phone that just finished its turn sends its exact state and the other adopts it. ---------- */
+const pvHash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
+const pvIds = a => a.map(c => c ? c.id : '-').join(',');
+const pvSideStr = s => [s.sp, s.max, s.ep, pvIds(s.hand), pvIds(s.deck), pvIds(s.disc), pvIds(s.guard), s.lane.map(c => c && !c.dying ? c.card.id + ':' + c.atk + ':' + c.hp : '-').join(','), s.bld.map(b => b && !b.dying ? b.card.id : '-').join(',')].join('|');
+const pvDigest = () => ({ hp: pvHash(pvSideStr(G.p)), he: pvHash(pvSideStr(G.e)) });
+const pvKeep = c => !!c && !c.dying && !c.span && !c.god && !c.voidDragon;
+function pvSideState(s) {
+  const ids = a => a.map(c => c.id);
+  return { sp: s.sp, mx: s.max, ep: s.ep, h: ids(s.hand), d: ids(s.deck), x: ids(s.disc), g: ids(s.guard),
+    l: s.lane.map(c => pvKeep(c) ? [c.card.id, c.atk, c.hp, c.maxHp, c.shield | 0, c.activated ? 1 : 0] : 0),
+    b: s.bld.map(b => b && !b.dying && !b.god ? b.card.id : 0) };
+}
+function pvApplyState(side, t) {
+  const s = G[side], cards = a => { const r = (a || []).map(id => BYID[id]); return r.every(Boolean) ? r : null; };
+  s.sp = t.sp; s.max = t.mx; s.ep = t.ep;
+  const h = cards(t.h), d = cards(t.d), x = cards(t.x), g = cards(t.g); if (h) s.hand = h; if (d) s.deck = d; if (x) s.disc = x; if (g) s.guard = g;
+  for (let i = 0; i < G.n; i++) {
+    const w = t.l[i], cur = s.lane[i];
+    if (!w) { if (pvKeep(cur)) removeInst(cur, true); }
+    else {
+      let c = pvKeep(cur) && cur.card.id === w[0] ? cur : null;
+      if (!c) {
+        if (pvKeep(cur)) removeInst(cur, true); if (s.lane[i] && !s.lane[i].dying) continue;
+        const card = BYID[w[0]] || (w[0] === MITE.id ? MITE : w[0] === LEAD.id ? LEAD : null); if (!card) continue;
+        c = spawnCreature(card, side, i); c.fresh = false;
+      }
+      c.atk = w[1]; c.hp = w[2]; c.maxHp = w[3]; c.shield = w[4]; c.activated = !!w[5]; refreshTag(c);
+    }
+    const bw = t.b[i], bc = s.bld[i];
+    if (!bw) { if (bc && !bc.dying && !bc.god) removeInst(bc, true); }
+    else if (!(bc && !bc.dying && bc.card.id === bw)) { if (bc && !bc.dying && !bc.god) removeInst(bc, true); const card = BYID[bw]; if (card) spawnBuilding(card, side, i); }
+  }
+}
+async function pvVerify(m) {
+  if (!isPvp() || !m || !m.hp || G.over) return;
+  const mine = pvDigest(); /* their own side is my opponent side, and the other way round */
+  if (mine.he === m.hp && mine.hp === m.he) { PV.gap = false; return; }
+  PV.gap = false; gtoast('The two screens differ. Re-syncing…', 1800);
+  const st = await new Promise(res => { PV.rssW = res; setTimeout(() => { if (PV.rssW === res) { PV.rssW = null; res(null); } }, 7000); pvSend({ k: 'rsq' }); });
+  if (G.dead) throw ABORT;
+  if (!st || !st.p || !st.e) { gtoast('Re-sync did not arrive. Playing on.', 2200); return; }
+  try { pvApplyState('e', st.p); pvApplyState('p', st.e); G.sel = null; syncUI(); gtoast('Back in sync.', 1400); } catch (er) { console.error('Versus re-sync failed', er); }
+  checkEnd();
+}
+function specPushNow() {
+  try { if (SPECS.length) { const sn = specSnap(); if (sn) { specLast = JSON.stringify(sn); specAll(sn); } } if (L.relay && L.seat === 1 && NET.open) { const sn = specSnap(); if (sn) NET.send(sn); } } catch (_) {}
 }
 function pvOppGone(msg) {
   if (!isPvp() || G.over || G.shown) return;
@@ -1554,7 +1703,7 @@ function pvLaunch() {
   if (PV.launched || current !== 'vsstart') return;
   const host = L.role === 'host', mine = myDeck(L.stage), theirs = host ? L.gdeck : L.hdeck;
   if (!theirs || !theirs.cards || !theirs.lands || theirs.lands.length !== mine.lands.length) { toast('The two decks could not be matched. Back to the lobby.'); NET.send({ t: 'bye' }); lobbyReset(); show('battle'); return; }
-  PV.launched = true; PV.on = true;
+  PV.launched = true; PV.on = true; pvSend({ k: 'avatar', av: avPub() });
   const ok = launchBattle({ kind: 'pvp', stage: L.stage, seed: L.seed, mine, theirs, hostFirst: host ? L.hseat !== 'p2' : L.seat === 1, foeName: (host ? L.guest : (L.oppName || L.host)) || 'Opponent',
     onEnd: () => { pvReset(); NET.send({ t: 'bye' }); lobbyReset(); show('battle'); } });
   if (ok) { close(); if (L.relay && L.seat === 1) relaySnapPush(); } else { pvReset(); NET.send({ t: 'bye' }); lobbyReset(); show('battle'); }
@@ -1585,7 +1734,7 @@ async function xferRead(code) {
 function settingsView() {
   return '<h2>Settings</h2><div class="field"><label for="nm">Player name</label><input id="nm" maxlength="14" value="' + esc(P.name) + '"></div>' +
     '<div class="tgl"><span>Sound</span><button id="snd" aria-pressed="' + P.sound + '">' + (P.sound ? 'On' : 'Off') + '</button></div>' +
-    '<h3>Secret code</h3><p class="note">Finish a stage (beat its boss) in the Campaign to unlock the next stage, with its cards, boosters and campaign. Special codes unlock secret God cards. Unlocked up to Stage ' + P.unlocked + '.</p>' +
+    '<h3>Teacher code</h3><p class="note">Your teacher gives a code after each lesson. Some special codes unlock a secret God card. It unlocks that stage’s cards, boosters and campaign. Unlocked up to Stage ' + P.unlocked + '.</p>' +
     '<div class="field"><label for="tc">Enter code</label><input id="tc" autocapitalize="characters" placeholder="Code"></div>' +
     '<h3>Move progress to another device</h3><p class="note">Make a transfer code here, then paste it into Settings on your other phone, tablet or computer. Your cards, decks, EXP and unlocked stages go with it.</p>' +
     '<div class="row"><button class="btn alt" data-xfer>Export or import progress</button></div>' +
@@ -1628,7 +1777,7 @@ sheet.addEventListener('click', e => {
   }
 });
 sheet.addEventListener('input', e => { if (e.target.id === 'vsName') { const v = e.target.value.trim().slice(0, 14); if (v) { P.name = v; save(); paint(); } } });
-sheet.addEventListener('dblclick', e => { const r = e.target.closest('[data-lsel]'); if (r && vsOpen(LAN.lobbies[r.dataset.lsel])) lanJoin(r.dataset.lsel, 'play'); });
+sheet.addEventListener('dblclick', e => { const r = e.target.closest('[data-lsel]'); const lb = r && LAN.lobbies[r.dataset.lsel]; if (lb && vsOpen(lb)) lanJoin(r.dataset.lsel, 'play'); else if (lb && lb.m && lb.sp && !L.joining) lanJoin(r.dataset.lsel, 'spec'); });
 sheet.addEventListener('change', e => {
   if (e.target.dataset && (e.target.dataset.hrole != null || e.target.dataset.mrole != null)) { roleChange(e.target); return; }
   if (e.target.id === 'pfile') {
@@ -2942,7 +3091,7 @@ function buildAvatar(cfg0) {
     }
   };
 }
-function avOppModel() { const fig = buildAvatar(avCfg()); fig.arms.forEach(a => { a.visible = false; }); const holder = new THREE.Group(); fig.root.scale.setScalar(2.6); fig.root.position.y = -0.7; holder.add(fig.root); return { root: holder, update: (t, dt) => fig.update(t, dt) }; }
+function avOppModel(cfg) { const fig = buildAvatar(cfg || avCfg()); fig.arms.forEach(a => { a.visible = false; }); const holder = new THREE.Group(); fig.root.scale.setScalar(2.6); fig.root.position.y = -0.7; holder.add(fig.root); return { root: holder, update: (t, dt) => fig.update(t, dt) }; }
 const avReact = k => { if (G && G.av) G.av.react(k); };
 function buildAvatarFig() {
   if (window.__auto || !T3 || G.kind === 'spec' || !window.THREE) return;
@@ -2960,7 +3109,7 @@ const AV_OPT = {
 function avatarView() {
   const d = avDraft = avCfg(), sw = (k, arr) => arr.map((c, i) => '<button class="swb' + (d[k] === i ? ' on' : '') + '" data-avk="' + k + '" data-avv="' + i + '" style="background:' + avHex(c) + '" aria-label="' + k + ' ' + (i + 1) + '"></button>').join('');
   const ch = k => AV_OPT[k].map(o => '<button class="chip' + (String(d[k]) === String(o[0]) ? ' on' : '') + '" data-avk="' + k + '" data-avv="' + o[0] + '">' + o[1] + '</button>').join('');
-  return '<h2>My Avatar</h2><p class="sub">Add your photo and dress up your character. It sits across the table in every battle, holding the cards.</p><div class="avx"><div class="avl"><canvas id="avc" width="260" height="320"></canvas>' +
+  return '<h2>My Avatar</h2><p class="sub">Add your photo and dress up your character. It stands at your side of the table in every battle. In a versus match your opponent sees it across theirs.</p><div class="avx"><div class="avl"><canvas id="avc" width="260" height="320"></canvas>' +
     '<div class="row" style="justify-content:center;margin-top:6px"><label class="btn alt avup">📷 Photo<input type="file" id="avf" accept="image/*" hidden></label><button class="btn alt" data-avx="nophoto">No photo</button></div><p class="note" style="margin:4px 0 0">Drag to turn · tap to cheer</p></div>' +
     '<div class="avr"><div class="field"><label for="avn">Name</label><input id="avn" maxlength="14" value="' + esc(P.name) + '"></div>' +
     '<div class="avg"><b>Skin</b><div class="sw">' + sw('skin', AV_SKIN) + '</div></div><div class="avg"><b>Body</b><div class="chips">' + ch('build') + '</div></div>' +
@@ -3007,10 +3156,11 @@ function avPhoto(file) {
 /* ---------- the opponent across the table ---------- */
 const OPP_X = 0, OPP_Z = -8.4, OPP_Y = -2.5, TABLE_EDGE = -7.6;
 function buildOpponent() {
-  const useAv = !!P.avatar && !window.__auto && G.kind !== 'spec' && !!window.THREE;
-  const foe = G.focus, key = foe && MODEL_KEY[foe.id], mk = (key && T3.BUILD[key]) || T3.BUILD.proton, col = useAv ? (AV_SKIN[avCfg().skin] || 0xf5c9a0) : ((foe && CARD_COL[foe.id]) || 0xffa927);
+  /* the far seat shows what my opponent looks like: their own avatar in a versus match, the foe's own character otherwise (never my avatar) */
+  const useAv = G.kind === 'pvp' && !window.__auto && !!window.THREE, oa = useAv ? Object.assign({}, AV_DEF, PV.oppAv || {}) : null;
+  const foe = G.focus, key = foe && MODEL_KEY[foe.id], mk = (key && T3.BUILD[key]) || T3.BUILD.proton, col = useAv ? (AV_SKIN[oa.skin] || 0xf5c9a0) : ((foe && CARD_COL[foe.id]) || 0xffa927);
   const grp = new THREE.Group(); fieldGrp.add(grp);
-  const model = useAv ? avOppModel() : mk(); if (!useAv) model.root.scale.setScalar(2.5); model.root.position.set(OPP_X, OPP_Y, OPP_Z); model.root.rotation.y = 0; grp.add(model.root);
+  const model = useAv ? avOppModel(oa) : mk(); if (!useAv) model.root.scale.setScalar(2.5); model.root.position.set(OPP_X, OPP_Y, OPP_Z); model.root.rotation.y = 0; grp.add(model.root);
   /* only the face and hands show: hide the model's own limbs, shadow disc and orbiting bits */
   if (!useAv && !(foe && foe.boss)) (model.root.children[0] ? model.root.children[0].children.slice(1) : []).concat(model.root.children.slice(1)).forEach(c => { let tube = false; c.traverse(n => { if (n.geometry && n.geometry.type === 'TubeGeometry') tube = true; }); const orbit = c.children.length > 0 && c.children.every(k => k.position.length() > 0.9); if (tube || orbit || (c.isMesh && c.geometry.type === 'PlaneGeometry')) c.visible = false; });
   const seg = r => {
@@ -4087,7 +4237,7 @@ function resolveAttack(att, crit) {
   const foeSide = other(att.side), def = defOf(foeSide, att.alane != null ? att.alane : att.lane), dmg = att.atk * (crit ? 2 : 1);
   shake = RM ? 0 : 0.3; if (crit) pop(new V3(att.base.x, 2.4, att.base.z), 'CRITICAL!', 'gold');
   if (def && !def.dying) {
-    const back = def.atk, hp0 = def.hp, dealt = dealDamage(def, dmg, att.card, { atk: true }), prev = def._prev, gone = prev && def.dying && def.hp > 0; def._prev = false; /* No counter-damage: the attacker is never hurt by the creature it hits. */
+    const back = def.atk, hp0 = def.hp, dealt = dealDamage(def, dmg, att.card, { atk: true }), prev = def._prev, gone = prev && def.dying && def.hp > 0; def._prev = false; if (!gone) dealDamage(att, back, def.card, { atk: true });
     /* SP is only hurt when the lane is empty, or when the attack is bigger than the blocker's HP: the leftover damage after the kill goes through. A blocker that survives lets nothing through. */
     const thru = prev ? 0 : def.hp <= 0 ? Math.max(0, dealt - hp0) : 0; if (thru > 0) { pop(new V3(def.base.x, 2.1, def.base.z), 'Breakthrough', 'gold'); lossSP(foeSide, thru); }
   }
@@ -7614,7 +7764,8 @@ async function playerTurn() {
   const choice = await new Promise(r => { G.endMain = r; });
   tut('turnEnd'); G.sel = null; G.selB = false;
   if (choice === 'battle') await playerBattle(); else { G.phase = 'foe'; }
-  wearOff(); syncUI(); if (isPvp()) pvSend({ k: 'end' });
+  wearOff(); syncUI();
+  if (isPvp()) { await sleep(250); if (G.dead) throw ABORT; PV.endState = { p: pvSideState(G.p), e: pvSideState(G.e) }; pvSend(Object.assign({ k: 'end' }, pvDigest())); specPushNow(); }
 }
 
 /* ---------- card pick popup and piles ---------- */
@@ -7810,7 +7961,8 @@ function startSpec(opts) {
   $('#gCoach').hidden = true; gq.hidden = true; $('#gres').hidden = true; syncUI();
 }
 function specInst(inst, w) { inst.atk = w[1]; inst.hp = w[2]; inst.maxHp = w[3]; inst.shield = w[4]; inst.activated = !!w[5]; refreshTag(inst); }
-function specApply(m) {
+function specApply(m) { try { specApply0(m); } catch (er) { console.error('Spectator update failed', er); } }
+function specApply0(m) {
   if (!G || G.kind !== 'spec' || G.dead) return;
   G.turn = m.tn; G.active = m.ac;
   for (const sd of ['p', 'e']) {
@@ -7910,17 +8062,17 @@ async function pvRemoteAtk(m) {
   camS.duel = null; camGoal(); await sleep(150); checkEnd();
 }
 async function pvRemoteTurn() {
-  G.phase = 'foe'; await startTurn('e'); G.phase = 'foe'; syncUI(); camS.focus = null; camGoal(); await sleep(300); gtoast('Opponent’s turn.', 1000);
+  let endM = null; G.phase = 'foe'; await startTurn('e'); G.phase = 'foe'; syncUI(); camS.focus = null; camGoal(); await sleep(300); gtoast('Opponent’s turn.', 1000);
   for (;;) {
     const m = await pvTake(); if (G.dead) throw ABORT;
-    if (m.k === 'end') break;
+    if (m.k === 'end') { endM = m; break; }
     else if (m.k === 'play') await pvRemotePlay(m);
     else if (m.k === 'act') await pvRemoteAct(m.lane);
     else if (m.k === 'atk') await pvRemoteAtk(m);
     else if (m.k === 'bld') { const bl = G.e.bld[m.lane]; if (bl) { gtoast('Opponent uses ' + bl.card.name + '.', 1300); await sleep(500); await useBuilding(bl, 'e'); await sleep(400); } checkEnd(); }
     else console.error('Versus: unexpected message', m);
   }
-  wearOff(); syncUI(); await sleep(150);
+  wearOff(); syncUI(); await sleep(150); await pvVerify(endM); specPushNow();
 }
 /* Rock, paper, scissors decides who goes first. Both phones send their pick; ties repeat. */
 async function pvRps(ai) {
