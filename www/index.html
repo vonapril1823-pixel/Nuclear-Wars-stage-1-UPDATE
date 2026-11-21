@@ -1264,14 +1264,14 @@ const NET = {
   ub64(s) { return Uint8Array.from(atob(s), c => c.charCodeAt(0)); },
   async pack(o) { const raw = new TextEncoder().encode(JSON.stringify(o)); if (window.CompressionStream) { const b = await new Response(new Blob([raw]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer(); return 'Z' + NET.b64(new Uint8Array(b)); } return 'R' + NET.b64(raw); },
   async unpack(s) { s = String(s).replace(/\s+/g, ''); if (!s) throw new Error('empty'); let raw = NET.ub64(s.slice(1)); if (s[0] === 'Z') { if (!window.DecompressionStream) throw new Error('unsupported'); raw = new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer()); } return JSON.parse(new TextDecoder().decode(raw)); },
-  close(keep) { const pc = NET.pc; if (!keep) NET.onclose = null; NET.hbStop(); NET.weak = 0; NET.hbSeen = false; NET.outbox = []; try { NET.dc && NET.dc.close(); } catch (_) {} try { pc && pc.close(); } catch (_) {} NET.pc = NET.dc = null; },
+  close(keep) { const pc = NET.pc; if (!keep) NET.onclose = null; NET.hbStop(); NET.weak = 0; NET.hbSeen = false; NET.outbox = []; try { NET.dc && NET.dc.close(); } catch (_) {} try { pc && pc.close(); } catch (_) {} NET.pc = NET.dc = null; NET.rel = null; },
   mk() { const pc = new RTCPeerConnection({ iceServers: ONL.on ? (window.NW_ICE || [{ urls: 'stun:stun.l.google.com:19302' }]) : [] }); NET.pc = pc; pc.onconnectionstatechange = () => {
     if (NET.pc !== pc) return; const st = pc.connectionState;
     if (st === 'connected') { clearTimeout(NET.dropT); NET.dropT = 0; if (NET.weak) NET.touch(); }
     else if (st === 'disconnected') { if (!NET.weak) { NET.weak = Date.now(); NET.onweak && NET.onweak(1); } clearTimeout(NET.dropT); NET.dropT = setTimeout(() => { if (NET.pc === pc && pc.connectionState !== 'connected') NET.onclose && NET.onclose('disconnected-long'); }, 20000); }
     else if (st === 'failed' || st === 'closed') NET.onclose && NET.onclose(st);
   }; return pc; },
-  wire(dc) { NET.dc = dc; let fired = false; const opened = () => { if (fired || NET.dc !== dc) return; fired = true; NET.hbStart(); NET.onopen && NET.onopen(); }; dc.onopen = opened; if (dc.readyState === 'open') setTimeout(opened, 0);
+  wire(dc) { if (NET.rel && dc !== NET.rel) { try { dc.close(); } catch (_) {} return; } NET.dc = dc; let fired = false; const opened = () => { if (fired || NET.dc !== dc) return; fired = true; NET.hbStart(); NET.onopen && NET.onopen(); }; dc.onopen = opened; if (dc.readyState === 'open') setTimeout(opened, 0);
     dc.onmessage = e => { NET.touch(); let m; try { m = JSON.parse(e.data); } catch (_) { return; } if (m && m.t === '~p') { NET.hbSeen = true; try { dc.send('{"t":"~a","ts":' + (+m.ts || 0) + '}'); } catch (_) {} return; } if (m && m.t === '~a') { NET.hbSeen = true; NET.rtt = Math.max(0, Date.now() - (+m.ts || Date.now())); return; } NET.onmsg && NET.onmsg(m); };
     dc.onclose = () => { if (NET.dc === dc) { NET.hbStop(); if (NET.onclose) NET.onclose('closed'); } }; },
   ice(pc) { return new Promise(r => { if (pc.iceGatheringState === 'complete') return r(); const t = setTimeout(r, 4000); pc.addEventListener('icegatheringstatechange', () => { if (pc.iceGatheringState === 'complete') { clearTimeout(t); r(); } }); }); },
@@ -1285,7 +1285,7 @@ const NET = {
   /* link health: a ping every 1.5 s. Silence for 4.5 s shows a "weak" banner; silence past the limit (20 s in a lobby, 30 s in a match) or a lost data channel ends the link. A short Wi-Fi hiccup no longer kicks anyone out. */
   touch() { NET.lastRx = Date.now(); if (NET.weak) { NET.weak = 0; NET.onweak && NET.onweak(2); } },
   limit() { try { return PV.on ? 15000 : 20000; } catch (_) { return 20000; } },
-  hbStart() { NET.hbStop(); NET.lastRx = Date.now(); NET.hbT = setInterval(NET.hbTick, 1500); },
+  hbStart() { NET.hbStop(); NET.lastRx = Date.now(); NET.hbT = setInterval(NET.hbTick, NET.rel ? 3000 : 1500); },
   hbStop() { clearInterval(NET.hbT); NET.hbT = 0; clearTimeout(NET.dropT); NET.dropT = 0; },
   hbTick() {
     const dc = NET.dc; if (!dc || dc.readyState !== 'open') return; NET.flush();
@@ -1293,6 +1293,15 @@ const NET = {
     if (!NET.hbSeen) return; const idle = Date.now() - NET.lastRx;
     if (idle > NET.limit()) { NET.hbStop(); NET.onclose && NET.onclose('timeout'); }
     else if (idle > 4500 && !NET.weak) { NET.weak = Date.now(); NET.onweak && NET.onweak(1); }
+  },
+  /* online fallback: when the direct phone-to-phone link cannot open (different networks, strict mobile data), the game messages go through the online server instead */
+  useRelay(xid) {
+    const old = NET.dc, opc = NET.pc; NET.dc = null; NET.pc = null;
+    try { if (old) { old.onclose = null; old.close(); } } catch (_) {} try { if (opc) { opc.onconnectionstatechange = null; opc.close(); } } catch (_) {}
+    const v = { xid, readyState: 'open', onopen: null, onmessage: null, onclose: null,
+      send(s) { if (v.readyState !== 'open' || !ONL.send({ t: 'line', xid, line: JSON.stringify({ t: 'rl', d: s }) })) throw new Error('offline'); },
+      close() { if (v.readyState === 'closed') return; v.readyState = 'closed'; try { ONL.openIds.delete(xid); ONL.send({ t: 'close', xid }); } catch (_) {} } };
+    NET.rel = v; NET.wire(v);
   },
   get open() { return !!NET.dc && NET.dc.readyState === 'open'; }
 };
@@ -1457,7 +1466,7 @@ function pvHostResume(peer) {
 }
 async function lanRejoin() {
   const p = lanp(), h = PV.hold; if (!p || !h || h.busy || !L.hostIp) return; h.busy = true; h.tries++; h.last = Date.now();
-  setTimeout(() => { if (PV.hold === h) h.busy = false; }, 8000);
+  setTimeout(() => { if (PV.hold === h) h.busy = false; }, ONL.on ? 24000 : 8000);
   try { const r = await p.tcpConnect({ ip: L.hostIp, port: 47322 }); LAN.cid = r.id; L.joining = true; await p.tcpSend({ id: r.id, line: JSON.stringify({ t: 'hi', role: 'play', name: P.name, rejoin: String(L.seed) }) }); } catch (_) { h.busy = false; }
 }
 /* --- spectators: keep the last board on screen and rejoin the same game by themselves --- */
@@ -1474,7 +1483,7 @@ function specRejoinTick() {
 }
 async function specRejoinTry() {
   const p = lanp(), h = SPH; if (!p || !h || h.busy || !L.hostIp) return; h.busy = true; h.tries++; h.last = Date.now();
-  setTimeout(() => { if (SPH === h) h.busy = false; }, 8000);
+  setTimeout(() => { if (SPH === h) h.busy = false; }, ONL.on ? 24000 : 8000);
   try { const r = await p.tcpConnect({ ip: L.hostIp, port: 47322 }); LAN.cid = r.id; L.joining = true; await p.tcpSend({ id: r.id, line: JSON.stringify({ t: 'hi', role: 'spec', name: P.name }) }); } catch (_) { h.busy = false; }
 }
 function specRejoinEnd() { if (!SPH) return; clearInterval(SPH.timer); SPH = null; holdUI(false); toast('Reconnected.'); }
@@ -1678,14 +1687,15 @@ async function lanJoin(id, role) {
   try {
     const r = await p.tcpConnect({ ip: lb.ip, port: 47322 }); LAN.cid = r.id;
     await p.tcpSend({ id: r.id, line: JSON.stringify({ t: 'hi', role, name: P.name }) });
-    setTimeout(() => { if (L.joining && !NET.open) lanFail('No reply. Make sure both phones are on the same hotspot.'); }, 25000);
+    setTimeout(() => { if (L.joining && !NET.open) lanFail(ONL.on ? 'No reply. Check that both phones have a working internet connection.' : 'No reply. Make sure both phones are on the same hotspot.'); }, 25000);
   } catch (e) { lanFail(ONL.on ? ((e && e.message) || 'Could not reach that room.') : 'Could not reach that lobby. Check that you are on the same hotspot.'); }
 }
 async function lanTcp(ev) {
   const p = lanp(); if (!p) return;
-  if (ev.kind === 'close') { delete LAN.conns[ev.id]; return; }
+  if (ev.kind === 'close') { const c0 = LAN.conns[ev.id], pe = c0 && c0.peer ? c0.peer : (ev.id === LAN.cid ? NET : null), v = pe && pe.rel; if (v && v.xid === ev.id && v.readyState !== 'closed') { v.readyState = 'closed'; if (v.onclose) v.onclose(); } delete LAN.conns[ev.id]; return; }
   const c = LAN.conns[ev.id] || (LAN.conns[ev.id] = {}); if (ev.kind !== 'line') return;
   let m; try { m = JSON.parse(ev.line); } catch (_) { return; }
+  if (m && m.t === 'rl') { const pe = L.role === 'host' ? c.peer : NET, v = pe && pe.rel; if (v && v.xid === ev.id && v.onmessage) v.onmessage({ data: m.d }); return; }
   const say = o => p.tcpSend({ id: ev.id, line: JSON.stringify(o) }).catch(() => {});
   if (L.role === 'host') {
     if (m.t === 'probe') { try { say(L.annObj ? L.annObj() : { a: 'none' }); } catch (_) {} return; } /* answers a phone that scans the network instead of listening for broadcasts (iPhone) */
@@ -1699,12 +1709,14 @@ async function lanTcp(ev) {
         const peer = mkNet(), mem = memAttach(peer); c.peer = peer; c.mem = mem; say({ t: 'offer', code: await peer.makeOffer() });
         setTimeout(() => { if (!mem.role) memDrop(mem); }, 40000);
       } catch (_) { say({ t: 'no', why: 'Could not make a link. Try again.' }); }
+    } else if (m.t === 'rly' && c.peer && ONL.on) { c.peer.useRelay(ev.id);
     } else if (m.t === 'answer' && c.peer) {
       try { await c.peer.acceptAnswer(m.code); } catch (_) { say({ t: 'no', why: 'The link failed. Try again.' }); }
-      setTimeout(() => { try { p.tcpClose({ id: ev.id }); } catch (_) {} }, 4000);
+      const chk = n => { if (c.peer && c.peer.rel) return; if (!ONL.on || (c.peer && c.peer.open) || n > 15) { try { p.tcpClose({ id: ev.id }); } catch (_) {} return; } setTimeout(() => chk(n + 1), 2000); }; setTimeout(() => chk(0), 4000);
     }
   } else if (ev.id === LAN.cid && (L.role === 'guest' || L.role === 'spec')) {
-    if (m.t === 'offer') { try { wireNet(); const code = await NET.makeAnswer(m.code); await p.tcpSend({ id: ev.id, line: JSON.stringify({ t: 'answer', code }) }); lanStatus('Linking the phones…'); } catch (_) { if (PV.hold || SPH) { if (PV.hold) PV.hold.busy = false; if (SPH) SPH.busy = false; } else lanFail('Could not link. Try again.'); } }
+    if (NET.open && (m.t === 'offer' || m.t === 'no')) return; /* a late reply must never break a link that already works */
+    if (m.t === 'offer') { try { wireNet(); const code = await NET.makeAnswer(m.code); await p.tcpSend({ id: ev.id, line: JSON.stringify({ t: 'answer', code }) }); lanStatus('Linking the phones…'); if (ONL.on) setTimeout(() => { if (ev.id === LAN.cid && !NET.open && (L.joining || PV.hold || SPH)) { say({ t: 'rly' }); NET.useRelay(ev.id); } }, 8000); } catch (_) { if (PV.hold || SPH) { if (PV.hold) PV.hold.busy = false; if (SPH) SPH.busy = false; } else lanFail('Could not link. Try again.'); } }
     else if (m.t === 'no') { if (PV.hold || SPH) { if (PV.hold) PV.hold.busy = false; if (SPH) SPH.busy = false; } else lanFail(m.why || 'The host could not take you.'); }
   }
 }
