@@ -4475,7 +4475,7 @@ function resolveAttack(att, crit) {
   const foeSide = other(att.side), def = defOf(foeSide, att.alane != null ? att.alane : att.lane), dmg = critDmg(att.atk, crit);
   shake = RM ? 0 : 0.3; if (crit) pop(new V3(att.base.x, 2.4, att.base.z), 'CRITICAL!', 'gold');
   if (def && !def.dying) {
-    const back = def.atk, hp0 = def.hp, dealt = dealDamage(def, dmg, att.card, { atk: true }), prev = def._prev, gone = prev && def.dying && def.hp > 0; def._prev = false; if (!gone) dealDamage(att, back, def.card, { atk: true });
+    const back = def.atk, hp0 = def.hp, dealt = dealDamage(def, dmg, att.card, { atk: true }), prev = def._prev, gone = prev && def.dying && def.hp > 0; def._prev = false; /* the attacker is never harmed by the creature it attacks */
     /* SP is only hurt when the lane is empty, or when the attack is bigger than the blocker's HP: the leftover damage after the kill goes through. A blocker that survives lets nothing through. */
     const thru = prev ? 0 : def.hp <= 0 ? Math.max(0, dealt - hp0) : 0; if (thru > 0) { pop(new V3(def.base.x, 2.1, def.base.z), 'Breakthrough', 'gold'); lossSP(foeSide, thru); }
   }
