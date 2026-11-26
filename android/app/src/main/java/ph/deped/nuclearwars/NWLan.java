@@ -37,10 +37,52 @@ public class NWLan extends Plugin {
     private ServerSocket server;
     private final Map<Integer, Socket> socks = new ConcurrentHashMap<>();
     private final AtomicInteger nextId = new AtomicInteger(1);
+    private final java.util.concurrent.ExecutorService sendEx = java.util.concurrent.Executors.newSingleThreadExecutor();
     private WifiManager.MulticastLock lock;
 
     private void emitUdp(String ip, String text) {
         JSObject o = new JSObject(); o.put("ip", ip); o.put("text", text); notifyListeners("udp", o);
+    }
+
+    private void emitScan(String ip, String text) {
+        JSObject o = new JSObject(); o.put("ip", ip); o.put("text", text); o.put("scan", true); notifyListeners("udp", o);
+    }
+
+    private void probe(String ip, int port) {
+        try (Socket c = new Socket()) {
+            c.connect(new java.net.InetSocketAddress(ip, port), 700); c.setSoTimeout(1500);
+            OutputStream o = c.getOutputStream(); o.write("{\"t\":\"probe\"}\n".getBytes(StandardCharsets.UTF_8)); o.flush();
+            BufferedReader br = new BufferedReader(new InputStreamReader(c.getInputStream(), StandardCharsets.UTF_8));
+            String line = br.readLine(); if (line != null && line.length() > 0) emitScan(ip, line);
+        } catch (Exception ignored) {}
+    }
+
+    /** Asks every address on this phone's Wi-Fi or hotspot network whether a lobby is hosted there. Works when the hotspot blocks UDP broadcast. */
+    @PluginMethod
+    public void lanScan(PluginCall call) {
+        final int port = call.getInt("port", 47322);
+        new Thread(() -> {
+            java.util.LinkedHashSet<String> cands = new java.util.LinkedHashSet<>(); java.util.HashSet<String> mine = new java.util.HashSet<>();
+            try {
+                for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                    if (!ni.isUp() || ni.isLoopback()) continue;
+                    for (InterfaceAddress ia : ni.getInterfaceAddresses()) {
+                        InetAddress a = ia.getAddress();
+                        if (!(a instanceof java.net.Inet4Address) || !a.isSiteLocalAddress()) continue;
+                        byte[] b = a.getAddress(); String own = a.getHostAddress(); mine.add(own);
+                        String pre = (b[0] & 255) + "." + (b[1] & 255) + "." + (b[2] & 255) + ".";
+                        for (int h = 1; h < 255; h++) cands.add(pre + h);
+                    }
+                }
+            } catch (Exception ignored) {}
+            cands.removeAll(mine);
+            java.util.concurrent.ExecutorService ex = java.util.concurrent.Executors.newFixedThreadPool(48);
+            final java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(cands.size());
+            for (final String ip : cands) ex.execute(() -> { try { probe(ip, port); } finally { done.countDown(); } });
+            try { done.await(20, java.util.concurrent.TimeUnit.SECONDS); } catch (InterruptedException ignored) {}
+            ex.shutdownNow();
+            JSObject r = new JSObject(); r.put("scanned", cands.size()); call.resolve(r);
+        }, "nwlan-scan").start();
     }
 
     private void emitTcp(int id, String kind, String line, String ip) {
@@ -105,7 +147,7 @@ public class NWLan extends Plugin {
             final ServerSocket ss = server;
             Thread t = new Thread(() -> {
                 while (!ss.isClosed()) {
-                    try { Socket c = ss.accept(); int id = nextId.getAndIncrement(); socks.put(id, c); emitTcp(id, "open", null, c.getInetAddress().getHostAddress()); read(id, c); }
+                    try { Socket c = ss.accept(); c.setTcpNoDelay(true); int id = nextId.getAndIncrement(); socks.put(id, c); emitTcp(id, "open", null, c.getInetAddress().getHostAddress()); read(id, c); }
                     catch (IOException e) { break; }
                 }
             }, "nwlan-accept");
@@ -144,12 +186,12 @@ public class NWLan extends Plugin {
     @PluginMethod
     public void tcpSend(PluginCall call) {
         final int id = call.getInt("id", -1); final String line = call.getString("line", "");
-        new Thread(() -> {
+        sendEx.execute(() -> {
             Socket c = socks.get(id);
             if (c == null) { call.reject("closed"); return; }
             try { OutputStream o = c.getOutputStream(); o.write((line.replace("\n", " ") + "\n").getBytes(StandardCharsets.UTF_8)); o.flush(); call.resolve(); }
             catch (IOException e) { call.reject("send: " + e.getMessage()); }
-        }, "nwlan-send").start();
+        });
     }
 
     @PluginMethod
